@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ASCIIText from './ASCIIText';
 
 // ============= ASCII CHARACTER SYSTEM =============
 const GHOST_FRAMES = {
@@ -51,7 +52,7 @@ const MISSIONS = [
       "well, well... another curious mind enters the void.",
       "i'm GHOST. been watching the networks for... a while now.",
       "you want to learn hacking? heh... everyone does.",
-      "but here's the thing, kid...",
+      "but here's the thing...",
       "i don't give answers. i give... opportunities.",
       "your first test: find what's hiding in the shadows.",
       "the network range is 192.168.1.0/24.",
@@ -61,7 +62,7 @@ const MISSIONS = [
     hints: [
       {
         cost: 0,
-        text: "Research: What tool is used for network scanning? Try 'man nmap' or search online for 'network scanning tools'."
+        text: "Research: What tool is used for network scanning? Try 'nmap' or search online for 'network scanning tools'."
       },
       {
         cost: 25,
@@ -89,7 +90,7 @@ const MISSIONS = [
       "every open port is a potential door.",
       "some are locked. some... not so much.",
       "your job: figure out what's behind those doors.",
-      "service versions matter, kid. REALLY matter.",
+      "service versions matter, REALLY matter.",
       "a version number can be the difference between getting in... and getting caught.",
       "research is your friend here. use it."
     ],
@@ -125,7 +126,7 @@ const MISSIONS = [
       "every piece of software has bugs. EVERY. SINGLE. ONE.",
       "your job? find them before someone else does.",
       "CVE databases, exploit-db, NVD...",
-      "these aren't just acronyms, kid. they're your weapons.",
+      "these aren't just acronyms, they're your weapons.",
       "research the services you found.",
       "find their vulnerabilities.",
       "understand the risk.",
@@ -159,7 +160,7 @@ const MISSIONS = [
       "heh... so you've done your homework.",
       "found a vulnerability? good.",
       "now comes the fun part.",
-      "exploitation isn't just running a script, kid.",
+      "exploitation isn't just running a script..",
       "it's understanding WHY it works.",
       "what's the flaw? what's being exploited?",
       "buffer overflow? sql injection? auth bypass?",
@@ -200,10 +201,9 @@ const MISSIONS = [
       "escalate privileges. persist. cover tracks.",
       "find the flags. they're your proof.",
       "but more importantly... understand what you're doing.",
-      "this isn't about breaking things, kid.",
+      "this isn't about breaking things.",
       "it's about understanding systems.",
       "understanding security.",
-      "understanding... control.",
       "finish this. show me you've learned something."
     ],
     hints: [
@@ -892,7 +892,7 @@ function HintsPanel({ currentMission, playerXP, onUnlockHint }) {
           💭 GHOST's Wisdom
         </div>
         <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
-          "hints are for those who seek... but remember, kid, the best lessons come from figuring it out yourself."
+          "hints are for those who seek... but remember, the best lessons come from figuring it out yourself."
         </div>
       </div>
 
@@ -1402,89 +1402,96 @@ You now have full control of ${host.hostname}!${nextTargetMessage}`;
     console.log('Tool clicked:', tool.name);
   };
 
-  return (
-    <div className="app-container">
-      <div className="title-bar">
-        <div className="title-bar-left">
-          <div className="title-text">Darknet Operative - Mission Control</div>
+return (
+  <div className="app-container">
+    <div className="title-bar">
+      <div className="title-bar-left">
+        <div className="stat-item">
+          <span>Level:</span>
+          <span className="stat-value">{playerLevel}</span>
         </div>
-        <div className="player-stats">
-          <div className="stat-item">
-            <span>Level:</span>
-            <span className="stat-value">{playerLevel}</span>
-          </div>
-          <div className="stat-item">
-            <span>XP:</span>
-            <span className="stat-value">{playerXP}</span>
-          </div>
-          <div className="stat-item">
-            <span>Mission:</span>
-            <span className="stat-value">{currentMissionIndex + 1}/{MISSIONS.length}</span>
-          </div>
+        <div className="stat-item">
+          <span>XP:</span>
+          <span className="stat-value">{playerXP}</span>
         </div>
       </div>
 
-      <div className="tab-navigation">
-        <button 
-          className={`tab ${activeTab === 'network' ? 'active' : ''}`}
-          onClick={() => setActiveTab('network')}
-        >
-          Network Map
-        </button>
-        <button 
-          className={`tab ${activeTab === 'intel' ? 'active' : ''}`}
-          onClick={() => setActiveTab('intel')}
-        >
-          Intel
-        </button>
-        <button 
-          className={`tab ${activeTab === 'tools' ? 'active' : ''}`}
-          onClick={() => setActiveTab('tools')}
-        >
-          Tools
-        </button>
-        <button 
-          className={`tab ${activeTab === 'hints' ? 'active' : ''}`}
-          onClick={() => setActiveTab('hints')}
-        >
-          Hints
-        </button>
-      </div>
-
-      <div className="main-content">
-        <Terminal 
-          onCommand={handleCommand}
-          history={terminalHistory}
-          currentTarget={currentTarget}
+      <div className="title-bar-center">
+        <ASCIIText
+          text="darknet_"
+          enableWaves={false}
+          asciiFontSize={10}
         />
-        
-        <div className="visual-pane">
-          <div className="panel-content">
-            {activeTab === 'network' && (
-              <NetworkMap 
-                discoveredHosts={discoveredHosts.filter(h => h.discovered)}
-                selectedHost={selectedHost}
-                onHostClick={handleHostClick}
-              />
-            )}
-            {activeTab === 'intel' && (
-              <IntelPanel 
-                selectedHost={selectedHost}
-              />
-            )}
-            {activeTab === 'tools' && (
-              <ToolsPanel 
-                onToolClick={handleToolClick}
-              />
-            )}
-            {activeTab === 'hints' && (
-              <HintsPanel 
-                currentMission={currentMission.id}
-                playerXP={playerXP}
-                onUnlockHint={handleUnlockHint}
-              />
-            )}
-          </div>
+      </div>
+
+      <div className="player-stats">
+        <div className="stat-item">
+          <span>Mission:</span>
+          <span className="stat-value">{currentMissionIndex + 1}/{MISSIONS.length}</span>
+        </div>
+        <div className="stat-item">
+          <span>Hosts:</span>
+          <span className="stat-value">{discoveredHosts.filter(h => h.discovered).length}</span>
+        </div>
+      </div>
+    </div>
+
+    <div className="tab-navigation">
+      <button 
+        className={`tab ${activeTab === 'network' ? 'active' : ''}`}
+        onClick={() => setActiveTab('network')}
+      >
+        Network Map
+      </button>
+      <button 
+        className={`tab ${activeTab === 'intel' ? 'active' : ''}`}
+        onClick={() => setActiveTab('intel')}
+      >
+        Intel
+      </button>
+      <button 
+        className={`tab ${activeTab === 'tools' ? 'active' : ''}`}
+        onClick={() => setActiveTab('tools')}
+      >
+        Tools
+      </button>
+      <button 
+        className={`tab ${activeTab === 'hints' ? 'active' : ''}`}
+        onClick={() => setActiveTab('hints')}
+      >
+        Hints
+      </button>
+    </div>
+
+    <div className="main-content">
+      <Terminal 
+        onCommand={handleCommand}
+        history={terminalHistory}
+        currentTarget={currentTarget}
+      />
+      
+      <div className="visual-pane">
+        <div className="panel-content">
+          {activeTab === 'network' && (
+            <NetworkMap 
+              discoveredHosts={discoveredHosts.filter(h => h.discovered)}
+              selectedHost={selectedHost}
+              onHostClick={handleHostClick}
+            />
+          )}
+          {activeTab === 'intel' && (
+            <IntelPanel selectedHost={selectedHost} />
+          )}
+          {activeTab === 'tools' && (
+            <ToolsPanel onToolClick={handleToolClick} />
+          )}
+          {activeTab === 'hints' && (
+            <HintsPanel 
+              currentMission={currentMission.id}
+              playerXP={playerXP}
+              onUnlockHint={handleUnlockHint}
+            />
+          )}
         </div>
       </div>
 
@@ -1493,7 +1500,8 @@ You now have full control of ${host.hostname}!${nextTargetMessage}`;
         objectives={objectives}
       />
     </div>
-  );
+  </div>
+);
 }
 
 export default App;
