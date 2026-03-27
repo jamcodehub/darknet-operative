@@ -37,7 +37,7 @@ const GHOST_FRAMES = {
     ░░░░░░░░░░░░░░░░░░░░`
 };
 
-// ============= MISSION DEFINITIONS =============
+  // ============= MISSION DEFINITIONS =============
 const MISSIONS = [
   {
     id: 'mission_1',
@@ -837,6 +837,85 @@ function ToolsPanel({ onToolClick }) {
   );
 }
 
+const MUSIC_SEQUENCE = [
+  { notes: ['g3'], duration: 0.5 },
+  { notes: ['bb3', 'c4'], duration: 0.5 },
+  { notes: ['g4', 'f4', 'eb4', 'f3'], duration: 0.5 },
+  { notes: ['a2'], duration: 1.0 }
+];
+
+function noteToFrequency(note) {
+  const semitoneMap = { c: 0, 'c#': 1, db: 1, d: 2, 'd#': 3, eb: 3, e: 4, f: 5, 'f#': 6, gb: 6, g: 7, 'g#': 8, ab: 8, a: 9, 'a#': 10, bb: 10, b: 11 };
+  const match = note.match(/^([a-g][b#]?)(\d+)$/i);
+  if (!match) return 440;
+  const pitch = match[1].toLowerCase();
+  const octave = parseInt(match[2], 10);
+  const semitone = semitoneMap[pitch];
+  const midi = 12 + octave * 12 + semitone;
+  return 440 * Math.pow(2, (midi - 69) / 12);
+}
+
+function MusicManager({ isPlaying }) {
+  const audioContextRef = useRef(null);
+  const intervalRef = useRef(null);
+
+  const stop = () => {
+    if (intervalRef.current) {
+      window.clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  };
+
+  const playSequence = () => {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+
+    const ctx = audioContextRef.current || new AudioContext();
+    audioContextRef.current = ctx;
+
+    const baseTime = ctx.currentTime + 0.1;
+    let cursor = baseTime;
+
+    MUSIC_SEQUENCE.forEach((step) => {
+      step.notes.forEach((n) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.frequency.setValueAtTime(noteToFrequency(n), cursor);
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0.0001, cursor);
+        gain.gain.exponentialRampToValueAtTime(0.15, cursor + 0.02);
+        gain.gain.setValueAtTime(0.15, cursor + step.duration - 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.0001, cursor + step.duration);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(cursor);
+        osc.stop(cursor + step.duration);
+      });
+      cursor += step.duration;
+    });
+  };
+
+  useEffect(() => {
+    const loopDuration = MUSIC_SEQUENCE.reduce((sum, item) => sum + item.duration, 0) * 1000;
+
+    if (isPlaying) {
+      playSequence();
+      intervalRef.current = window.setInterval(playSequence, loopDuration);
+    } else {
+      stop();
+    }
+
+    return () => {
+      stop();
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+        audioContextRef.current = null;
+      }
+    };
+  }, [isPlaying]);
+
+  return null;
+}
+
 // ============= MISSION OBJECTIVES =============
 function MissionObjectives({ currentMission, objectives }) {
   return (
@@ -942,6 +1021,7 @@ function App() {
   const [currentTarget, setCurrentTarget] = useState(null);
   const [playerXP, setPlayerXP] = useState(0);
   const [playerLevel, setPlayerLevel] = useState(1);
+  const [isMusicPlaying, setIsMusicPlaying] = useState(true);
   const [currentMissionIndex, setCurrentMissionIndex] = useState(0);
   const [discoveredHosts, setDiscoveredHosts] = useState([
     {
@@ -1404,6 +1484,7 @@ You now have full control of ${host.hostname}!${nextTargetMessage}`;
 
 return (
   <div className="app-container">
+    <MusicManager isPlaying={isMusicPlaying} />
     <div className="title-bar">
       <div className="title-bar-left">
         <div className="stat-item">
@@ -1425,6 +1506,13 @@ return (
       </div>
 
       <div className="player-stats">
+        <button
+          className="sound-toggle"
+          onClick={() => setIsMusicPlaying(prev => !prev)}
+          title={isMusicPlaying ? 'Mute music' : 'Unmute music'}
+        >
+          {isMusicPlaying ? '🔊' : '🔇'}
+        </button>
         <div className="stat-item">
           <span>Mission:</span>
           <span className="stat-value">{currentMissionIndex + 1}/{MISSIONS.length}</span>
