@@ -1,0 +1,46 @@
+# dependencies
+/node_modules
+
+# build outputs
+/dist
+/dist-electron
+/.vite
+/*.local
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+
+# IDE files
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# runtime files
+npm-debug.log
+.pnpm-debug.log
+
+# environment
+.env
+.env.*
+
+# Netlify
+.netlify
+
+# generated fonts, media etc
+*.woff2
+*.eot
+*.ttf
+*.otf
+
+# large files
+*.zip
+*.tar.gz
+*.jar
+*.exe

@@ -81,12 +81,29 @@ body {
 
 .player-stats {
   display: flex;
-  gap: 20px;
+  gap: 12px;
   font-size: 13px;
   color: var(--text-secondary);
   -webkit-app-region: no-drag;
   flex: 1;
   justify-content: flex-end;
+  align-items: center;
+}
+
+.sound-toggle {
+  background: transparent;
+  border: 1px solid var(--border-primary);
+  color: var(--text-secondary);
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.sound-toggle:hover {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
 }
 
 .stat-item {
