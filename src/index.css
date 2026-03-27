@@ -60,6 +60,17 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex: 1;
+}
+
+.title-bar-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 2;
+  height: 60px;
+  -webkit-app-region: no-drag;
+  position: relative;
 }
 
 .title-text {
@@ -74,6 +85,8 @@ body {
   font-size: 13px;
   color: var(--text-secondary);
   -webkit-app-region: no-drag;
+  flex: 1;
+  justify-content: flex-end;
 }
 
 .stat-item {
@@ -120,6 +133,7 @@ body {
 /* Main Content Area */
 .main-content {
   display: flex;
+  flex-direction: column;
   flex: 1;
   overflow: hidden;
 }
@@ -477,7 +491,11 @@ body {
 .mission-objectives {
   background-color: var(--bg-secondary);
   border-top: 1px solid var(--border-primary);
-  padding: 16px 20px;
+  padding: 12px 20px;
+  min-height: auto;
+  max-height: 120px;
+  overflow-y: auto;
+  flex-shrink: 0;
 }
 
 .mission-title {

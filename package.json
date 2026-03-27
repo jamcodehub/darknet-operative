@@ -10,12 +10,18 @@
     "electron:dev": "vite build && electron .",
     "electron:build": "vite build && electron-builder"
   },
-  "keywords": ["cybersecurity", "education", "hacking", "game"],
+  "keywords": [
+    "cybersecurity",
+    "education",
+    "hacking",
+    "game"
+  ],
   "author": "Nebsy",
   "license": "MIT",
   "dependencies": {
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "three": "^0.183.2"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.0",
