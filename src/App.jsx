@@ -1022,6 +1022,7 @@ function App() {
   const [playerXP, setPlayerXP] = useState(0);
   const [playerLevel, setPlayerLevel] = useState(1);
   const [isMusicPlaying, setIsMusicPlaying] = useState(true);
+  const [hasUserInteraction, setHasUserInteraction] = useState(false);
   const [currentMissionIndex, setCurrentMissionIndex] = useState(0);
   const [discoveredHosts, setDiscoveredHosts] = useState([
     {
