@@ -229,10 +229,23 @@ function GhostDialogue({ dialogue, onComplete }) {
   const [displayedText, setDisplayedText] = useState('');
   const [charIndex, setCharIndex] = useState(0);
   const [frame, setFrame] = useState('idle');
+  const [isComplete, setIsComplete] = useState(false);
+
+  // Reset all state for replay
+  const handleReplay = () => {
+    setCurrentLine(0);
+    setDisplayedText('');
+    setCharIndex(0);
+    setFrame('idle');
+    setIsComplete(false);
+  };
 
   useEffect(() => {
+    if (isComplete) return;
+
     if (currentLine >= dialogue.length) {
-      setTimeout(onComplete, 1000);
+      setIsComplete(true);
+      setTimeout(onComplete, 500);
       return;
     }
 
@@ -254,7 +267,10 @@ function GhostDialogue({ dialogue, onComplete }) {
       }, 1500);
       return () => clearTimeout(timer);
     }
-  }, [currentLine, charIndex, dialogue, onComplete]);
+  }, [currentLine, charIndex, dialogue, onComplete, isComplete]);
+
+  // Display line: clamp so it never exceeds total
+  const displayLine = Math.min(currentLine + 1, dialogue.length);
 
   return (
     <div style={{ 
@@ -274,11 +290,12 @@ function GhostDialogue({ dialogue, onComplete }) {
           color: 'var(--accent-purple)', 
           fontSize: '10px',
           lineHeight: '10px',
-          margin: 0
+          margin: 0,
+          flexShrink: 0
         }}>
           {GHOST_FRAMES[frame]}
         </pre>
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ 
             color: 'var(--accent-purple)', 
             fontWeight: 'bold',
@@ -292,17 +309,33 @@ function GhostDialogue({ dialogue, onComplete }) {
             fontSize: '13px',
             minHeight: '60px'
           }}>
-            {displayedText}
-            {charIndex < dialogue[currentLine]?.length && (
-              <span style={{ animation: 'pulse 1s infinite' }}>_</span>
+            {isComplete ? (
+              <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                ...transmission complete.
+              </span>
+            ) : (
+              <>
+                {displayedText}
+                {charIndex < dialogue[currentLine]?.length && (
+                  <span style={{ animation: 'pulse 1s infinite' }}>_</span>
+                )}
+              </>
             )}
           </div>
           <div style={{ 
             marginTop: '10px',
             fontSize: '11px',
-            color: 'var(--text-muted)'
+            color: 'var(--text-muted)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px'
           }}>
-            {currentLine + 1} / {dialogue.length}
+            <span>{displayLine} / {dialogue.length}</span>
+            {isComplete && (
+              <button className="ghost-replay-btn" onClick={handleReplay}>
+                ↺ Replay
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -400,7 +433,7 @@ function Terminal({ onCommand, history, currentTarget }) {
   );
 }
 
-// ============= NETWORK MAP (keeping existing) =============
+// ============= NETWORK MAP =============
 function NetworkMap({ discoveredHosts, selectedHost, onHostClick }) {
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -606,7 +639,7 @@ function NetworkMap({ discoveredHosts, selectedHost, onHostClick }) {
   );
 }
 
-// ============= INTEL PANEL (keeping existing) =============
+// ============= INTEL PANEL =============
 function IntelPanel({ selectedHost }) {
   const getSeverityBadge = (severity) => {
     return <span className={`intel-badge ${severity.toLowerCase()}`}>{severity}</span>;
@@ -760,7 +793,7 @@ function IntelPanel({ selectedHost }) {
   );
 }
 
-// ============= TOOLS PANEL (keeping existing) =============
+// ============= TOOLS PANEL =============
 function ToolsPanel({ onToolClick }) {
   const tools = [
     {
@@ -791,16 +824,11 @@ function ToolsPanel({ onToolClick }) {
 
   const getCategoryColor = (category) => {
     switch (category) {
-      case 'reconnaissance':
-        return 'var(--accent-blue)';
-      case 'vulnerability':
-        return 'var(--accent-yellow)';
-      case 'exploitation':
-        return 'var(--accent-red)';
-      case 'post-exploitation':
-        return 'var(--accent-purple)';
-      default:
-        return 'var(--text-secondary)';
+      case 'reconnaissance': return 'var(--accent-blue)';
+      case 'vulnerability': return 'var(--accent-yellow)';
+      case 'exploitation': return 'var(--accent-red)';
+      case 'post-exploitation': return 'var(--accent-purple)';
+      default: return 'var(--text-secondary)';
     }
   };
 
@@ -942,7 +970,7 @@ function MissionObjectives({ currentMission, objectives }) {
 // ============= HINTS PANEL =============
 function HintsPanel({ currentMission, playerXP, onUnlockHint }) {
   const mission = MISSIONS.find(m => m.id === currentMission);
-  const [unlockedHints, setUnlockedHints] = useState([0]); // First hint is always free
+  const [unlockedHints, setUnlockedHints] = useState([0]);
 
   if (!mission) {
     return (
@@ -1022,7 +1050,6 @@ function App() {
   const [playerXP, setPlayerXP] = useState(0);
   const [playerLevel, setPlayerLevel] = useState(1);
   const [isMusicPlaying, setIsMusicPlaying] = useState(true);
-  const [hasUserInteraction, setHasUserInteraction] = useState(false);
   const [currentMissionIndex, setCurrentMissionIndex] = useState(0);
   const [discoveredHosts, setDiscoveredHosts] = useState([
     {
@@ -1119,7 +1146,6 @@ function App() {
     const parts = command.toLowerCase().split(' ');
     const cmd = parts[0];
 
-    // GHOST dialogue command
     if (cmd === 'talk' || cmd === 'ghost') {
       if (!hasMetGhost) {
         setHasMetGhost(true);
@@ -1127,11 +1153,10 @@ function App() {
         awardXP(50);
       }
       historyItem.dialogue = currentMission.ghostDialogue;
-      setTerminalHistory([...terminalHistory, historyItem]);
+      setTerminalHistory(prev => [...prev, historyItem]);
       return;
     }
 
-    // Help command
     if (cmd === 'help') {
       historyItem.output = `Available Commands:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1158,11 +1183,10 @@ NAVIGATION:
 💡 TIP: Research is your best friend. Use man pages, CVE databases,
 and search engines to learn about the tools and techniques.`;
       historyItem.type = 'info';
-      setTerminalHistory([...terminalHistory, historyItem]);
+      setTerminalHistory(prev => [...prev, historyItem]);
       return;
     }
 
-    // Mission command
     if (cmd === 'mission') {
       historyItem.output = `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🎯 CURRENT MISSION: ${currentMission.title}
@@ -1171,37 +1195,34 @@ and search engines to learn about the tools and techniques.`;
 ${currentMission.description}
 
 OBJECTIVES:
-${objectives.map((obj, i) => `  ${obj.completed ? '✓' : '○'} ${obj.text}`).join('\n')}
+${objectives.map((obj) => `  ${obj.completed ? '✓' : '○'} ${obj.text}`).join('\n')}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Progress: ${objectives.filter(o => o.completed).length} / ${objectives.length} complete
 Type 'talk' to speak with GHOST for guidance.`;
       historyItem.type = 'info';
-      setTerminalHistory([...terminalHistory, historyItem]);
+      setTerminalHistory(prev => [...prev, historyItem]);
       return;
     }
 
-    // Hint command
     if (cmd === 'hint') {
       historyItem.output = 'Hints are available in the Hints tab. Switch tabs to view available guidance.';
       historyItem.type = 'info';
-      setTerminalHistory([...terminalHistory, historyItem]);
+      setTerminalHistory(prev => [...prev, historyItem]);
       setActiveTab('hints');
       return;
     }
 
-    // Clear command
     if (cmd === 'clear') {
       setTerminalHistory([]);
       return;
     }
 
-    // Nmap command
     if (cmd === 'nmap') {
       if (parts.length < 2) {
         historyItem.output = 'Usage: nmap <target>\nExample: nmap 192.168.1.0/24';
         historyItem.type = 'error';
-        setTerminalHistory([...terminalHistory, historyItem]);
+        setTerminalHistory(prev => [...prev, historyItem]);
         return;
       }
 
@@ -1210,7 +1231,6 @@ Type 'talk' to speak with GHOST for guidance.`;
 
       if (target === '192.168.1.0/24' || target.startsWith('192.168.1.')) {
         if (isServiceScan) {
-          // Service enumeration
           const targetIp = target.replace('/24', '');
           const host = discoveredHosts.find(h => target === '192.168.1.0/24' || h.ip === targetIp);
           
@@ -1219,7 +1239,6 @@ Type 'talk' to speak with GHOST for guidance.`;
             updateObjective('service_scan', true);
             updateObjective('identify_versions', true);
             
-            // Count open ports
             const totalPorts = discoveredHosts.reduce((sum, h) => sum + (h.ports?.length || 0), 0);
             if (totalPorts >= 5) {
               updateObjective('document_findings', true);
@@ -1227,14 +1246,13 @@ Type 'talk' to speak with GHOST for guidance.`;
           } else {
             historyItem.output = `Host ${targetIp} not found. Scan the network first.`;
             historyItem.type = 'error';
+            setTerminalHistory(prev => [...prev, historyItem]);
           }
         } else {
-          // Network scan
           handleNetworkScan(historyItem);
           updateObjective('scan_network', true);
           
-          // Check if at least 3 hosts discovered
-          const discoveredCount = discoveredHosts.filter(h => h.discovered).length;
+          const discoveredCount = discoveredHosts.filter(h => h.discovered).length + discoveredHosts.length;
           if (discoveredCount >= 3) {
             updateObjective('identify_hosts', true);
           }
@@ -1242,18 +1260,16 @@ Type 'talk' to speak with GHOST for guidance.`;
       } else {
         historyItem.output = `Invalid target. Try scanning the network range: 192.168.1.0/24`;
         historyItem.type = 'error';
+        setTerminalHistory(prev => [...prev, historyItem]);
       }
-      
-      setTerminalHistory([...terminalHistory, historyItem]);
       return;
     }
 
-    // Searchsploit command
     if (cmd === 'searchsploit') {
       if (parts.length < 2) {
         historyItem.output = 'Usage: searchsploit <service> <version>\nExample: searchsploit apache 2.4.41';
         historyItem.type = 'error';
-        setTerminalHistory([...terminalHistory, historyItem]);
+        setTerminalHistory(prev => [...prev, historyItem]);
         return;
       }
 
@@ -1262,16 +1278,14 @@ Type 'talk' to speak with GHOST for guidance.`;
       updateObjective('find_cve', true);
       updateObjective('understand_cvss', true);
       updateObjective('locate_exploit', true);
-      setTerminalHistory([...terminalHistory, historyItem]);
       return;
     }
 
-    // Exploit command
     if (cmd === 'exploit') {
       if (parts.length < 3) {
         historyItem.output = 'Usage: exploit <CVE-ID> <target-ip>\nExample: exploit CVE-2024-1234 192.168.1.10';
         historyItem.type = 'error';
-        setTerminalHistory([...terminalHistory, historyItem]);
+        setTerminalHistory(prev => [...prev, historyItem]);
         return;
       }
 
@@ -1284,14 +1298,12 @@ Type 'talk' to speak with GHOST for guidance.`;
       updateObjective('post_exploit', true);
       updateObjective('escalate', true);
       updateObjective('capture_flag', true);
-      setTerminalHistory([...terminalHistory, historyItem]);
       return;
     }
 
-    // Unknown command
     historyItem.output = `Command not found: ${command}\nType 'help' for available commands.`;
     historyItem.type = 'error';
-    setTerminalHistory([...terminalHistory, historyItem]);
+    setTerminalHistory(prev => [...prev, historyItem]);
   };
 
   const handleNetworkScan = (historyItem) => {
@@ -1311,6 +1323,7 @@ Scan complete. Use 'nmap -sV <target>' for service enumeration.`;
     historyItem.type = 'success';
     awardXP(100);
     setActiveTab('network');
+    setTerminalHistory(prev => [...prev, historyItem]);
   };
 
   const handleServiceEnumeration = (ip, historyItem) => {
@@ -1319,6 +1332,7 @@ Scan complete. Use 'nmap -sV <target>' for service enumeration.`;
     if (!host) {
       historyItem.output = `Host ${ip} not found. Scan the network first using: nmap 192.168.1.0/24`;
       historyItem.type = 'error';
+      setTerminalHistory(prev => [...prev, historyItem]);
       return;
     }
 
@@ -1331,11 +1345,10 @@ ${host.ports.map(port =>
 
 Service enumeration complete. Use 'searchsploit' to find exploits for these services.`;
     historyItem.type = 'success';
-    
     awardXP(75);
-    
     setSelectedHost(host);
     setActiveTab('intel');
+    setTerminalHistory(prev => [...prev, historyItem]);
   };
 
   const handleSearchSploit = (query, historyItem) => {
@@ -1371,6 +1384,7 @@ Use 'exploit <CVE-ID> <target-ip>' to execute an exploit.`;
       historyItem.output = `No exploits found for "${query}"\n\nTip: Make sure you've enumerated services first with 'nmap -sV <target>'`;
       historyItem.type = 'warning';
     }
+    setTerminalHistory(prev => [...prev, historyItem]);
   };
 
   const handleExploit = (cve, targetIp, historyItem) => {
@@ -1379,6 +1393,7 @@ Use 'exploit <CVE-ID> <target-ip>' to execute an exploit.`;
     if (!host) {
       historyItem.output = `Target ${targetIp} not found.`;
       historyItem.type = 'error';
+      setTerminalHistory(prev => [...prev, historyItem]);
       return;
     }
 
@@ -1387,6 +1402,7 @@ Use 'exploit <CVE-ID> <target-ip>' to execute an exploit.`;
     if (!vuln) {
       historyItem.output = `Vulnerability ${cve} not found on target ${targetIp}.\nUse 'searchsploit' to find available exploits.`;
       historyItem.type = 'error';
+      setTerminalHistory(prev => [...prev, historyItem]);
       return;
     }
 
@@ -1424,10 +1440,9 @@ Use 'exploit <CVE-ID> <target-ip>' to execute an exploit.`;
     All targets have been compromised!
     Type 'talk' to speak with GHOST about your next mission.`;
       
-      // Advance to next mission if available
       if (currentMissionIndex < MISSIONS.length - 1) {
         setTimeout(() => {
-          setCurrentMissionIndex(currentMissionIndex + 1);
+          setCurrentMissionIndex(prev => prev + 1);
           setObjectives(MISSIONS[currentMissionIndex + 1].objectives);
         }, 3000);
       }
@@ -1442,36 +1457,37 @@ Use 'exploit <CVE-ID> <target-ip>' to execute an exploit.`;
 
 You now have full control of ${host.hostname}!${nextTargetMessage}`;
     historyItem.type = 'success';
-    
     awardXP(300);
     setActiveTab('intel');
+    setTerminalHistory(prev => [...prev, historyItem]);
   };
 
   const updateObjective = (id, completed) => {
-    setObjectives(objectives.map(obj => 
+    setObjectives(prev => prev.map(obj => 
       obj.id === id ? { ...obj, completed } : obj
     ));
   };
 
   const awardXP = (amount) => {
-    const newXP = playerXP + amount;
-    setPlayerXP(newXP);
-    
-    const newLevel = Math.floor(newXP / 500) + 1;
-    if (newLevel > playerLevel) {
-      setPlayerLevel(newLevel);
-      const levelUpNotification = {
-        prompt: 'SYSTEM',
-        command: '',
-        output: `🎉 LEVEL UP! You are now Level ${newLevel}!`,
-        type: 'success'
-      };
-      setTerminalHistory(prev => [...prev, levelUpNotification]);
-    }
+    setPlayerXP(prev => {
+      const newXP = prev + amount;
+      const newLevel = Math.floor(newXP / 500) + 1;
+      if (newLevel > playerLevel) {
+        setPlayerLevel(newLevel);
+        const levelUpNotification = {
+          prompt: 'SYSTEM',
+          command: '',
+          output: `🎉 LEVEL UP! You are now Level ${newLevel}!`,
+          type: 'success'
+        };
+        setTerminalHistory(h => [...h, levelUpNotification]);
+      }
+      return newXP;
+    });
   };
 
   const handleUnlockHint = (cost) => {
-    setPlayerXP(playerXP - cost);
+    setPlayerXP(prev => prev - cost);
   };
 
   const handleHostClick = (host) => {
@@ -1483,114 +1499,117 @@ You now have full control of ${host.hostname}!${nextTargetMessage}`;
     console.log('Tool clicked:', tool.name);
   };
 
-return (
-  <div className="app-container">
-    <MusicManager isPlaying={isMusicPlaying} />
-    <div className="title-bar">
-      <div className="title-bar-left">
-        <div className="stat-item">
-          <span>Level:</span>
-          <span className="stat-value">{playerLevel}</span>
+  return (
+    <div className="app-container">
+      <MusicManager isPlaying={isMusicPlaying} />
+      <div className="title-bar">
+        <div className="title-bar-left">
+          <div className="stat-item">
+            <span>Level:</span>
+            <span className="stat-value">{playerLevel}</span>
+          </div>
+          <div className="stat-item">
+            <span>XP:</span>
+            <span className="stat-value">{playerXP}</span>
+          </div>
         </div>
-        <div className="stat-item">
-          <span>XP:</span>
-          <span className="stat-value">{playerXP}</span>
+
+        <div className="title-bar-center">
+          <ASCIIText
+            text="darknet_"
+            enableWaves={false}
+            asciiFontSize={10}
+          />
+        </div>
+
+        <div className="player-stats">
+          <button
+            className="sound-toggle"
+            onClick={() => setIsMusicPlaying(prev => !prev)}
+            title={isMusicPlaying ? 'Mute music' : 'Unmute music'}
+          >
+            {isMusicPlaying ? '🔊' : '🔇'}
+          </button>
+          <div className="stat-item">
+            <span>Mission:</span>
+            <span className="stat-value">{currentMissionIndex + 1}/{MISSIONS.length}</span>
+          </div>
+          <div className="stat-item">
+            <span>Hosts:</span>
+            <span className="stat-value">{discoveredHosts.filter(h => h.discovered).length}</span>
+          </div>
         </div>
       </div>
 
-      <div className="title-bar-center">
-        <ASCIIText
-          text="darknet_"
-          enableWaves={false}
-          asciiFontSize={10}
+      <div className="tab-navigation">
+        <button 
+          className={`tab ${activeTab === 'network' ? 'active' : ''}`}
+          onClick={() => setActiveTab('network')}
+        >
+          Network Map
+        </button>
+        <button 
+          className={`tab ${activeTab === 'intel' ? 'active' : ''}`}
+          onClick={() => setActiveTab('intel')}
+        >
+          Intel
+        </button>
+        <button 
+          className={`tab ${activeTab === 'tools' ? 'active' : ''}`}
+          onClick={() => setActiveTab('tools')}
+        >
+          Tools
+        </button>
+        <button 
+          className={`tab ${activeTab === 'hints' ? 'active' : ''}`}
+          onClick={() => setActiveTab('hints')}
+        >
+          Hints
+        </button>
+      </div>
+
+      {/* ── KEY FIX: content-row wraps terminal + panel side-by-side ── */}
+      <div className="main-content">
+        <div className="content-row">
+          <Terminal 
+            onCommand={handleCommand}
+            history={terminalHistory}
+            currentTarget={currentTarget}
+          />
+          
+          <div className="visual-pane">
+            <div className="panel-content">
+              {activeTab === 'network' && (
+                <NetworkMap 
+                  discoveredHosts={discoveredHosts.filter(h => h.discovered)}
+                  selectedHost={selectedHost}
+                  onHostClick={handleHostClick}
+                />
+              )}
+              {activeTab === 'intel' && (
+                <IntelPanel selectedHost={selectedHost} />
+              )}
+              {activeTab === 'tools' && (
+                <ToolsPanel onToolClick={handleToolClick} />
+              )}
+              {activeTab === 'hints' && (
+                <HintsPanel 
+                  currentMission={currentMission.id}
+                  playerXP={playerXP}
+                  onUnlockHint={handleUnlockHint}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+
+        <MissionObjectives 
+          currentMission={currentMission.title}
+          objectives={objectives}
         />
       </div>
-
-      <div className="player-stats">
-        <button
-          className="sound-toggle"
-          onClick={() => setIsMusicPlaying(prev => !prev)}
-          title={isMusicPlaying ? 'Mute music' : 'Unmute music'}
-        >
-          {isMusicPlaying ? '🔊' : '🔇'}
-        </button>
-        <div className="stat-item">
-          <span>Mission:</span>
-          <span className="stat-value">{currentMissionIndex + 1}/{MISSIONS.length}</span>
-        </div>
-        <div className="stat-item">
-          <span>Hosts:</span>
-          <span className="stat-value">{discoveredHosts.filter(h => h.discovered).length}</span>
-        </div>
-      </div>
     </div>
-
-    <div className="tab-navigation">
-      <button 
-        className={`tab ${activeTab === 'network' ? 'active' : ''}`}
-        onClick={() => setActiveTab('network')}
-      >
-        Network Map
-      </button>
-      <button 
-        className={`tab ${activeTab === 'intel' ? 'active' : ''}`}
-        onClick={() => setActiveTab('intel')}
-      >
-        Intel
-      </button>
-      <button 
-        className={`tab ${activeTab === 'tools' ? 'active' : ''}`}
-        onClick={() => setActiveTab('tools')}
-      >
-        Tools
-      </button>
-      <button 
-        className={`tab ${activeTab === 'hints' ? 'active' : ''}`}
-        onClick={() => setActiveTab('hints')}
-      >
-        Hints
-      </button>
-    </div>
-
-    <div className="main-content">
-      <Terminal 
-        onCommand={handleCommand}
-        history={terminalHistory}
-        currentTarget={currentTarget}
-      />
-      
-      <div className="visual-pane">
-        <div className="panel-content">
-          {activeTab === 'network' && (
-            <NetworkMap 
-              discoveredHosts={discoveredHosts.filter(h => h.discovered)}
-              selectedHost={selectedHost}
-              onHostClick={handleHostClick}
-            />
-          )}
-          {activeTab === 'intel' && (
-            <IntelPanel selectedHost={selectedHost} />
-          )}
-          {activeTab === 'tools' && (
-            <ToolsPanel onToolClick={handleToolClick} />
-          )}
-          {activeTab === 'hints' && (
-            <HintsPanel 
-              currentMission={currentMission.id}
-              playerXP={playerXP}
-              onUnlockHint={handleUnlockHint}
-            />
-          )}
-        </div>
-      </div>
-
-      <MissionObjectives 
-        currentMission={currentMission.title}
-        objectives={objectives}
-      />
-    </div>
-  </div>
-);
+  );
 }
 
 export default App;
