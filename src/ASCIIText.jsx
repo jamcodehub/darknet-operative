@@ -51,8 +51,9 @@ Math.map = function (n, start, stop, start2, stop2) {
 const PX_RATIO = typeof window !== 'undefined' ? window.devicePixelRatio : 1;
 
 class AsciiFilter {
-  constructor(renderer, { fontSize, fontFamily, charset, invert } = {}) {
+  constructor(renderer, { fontSize, fontFamily, charset, invert, shadowOffset = 0 } = {}) {
     this.renderer = renderer;
+    this.shadowOffset = shadowOffset;
     this.domElement = document.createElement('div');
     this.domElement.style.position = 'absolute';
     this.domElement.style.top = '0';
@@ -107,8 +108,8 @@ class AsciiFilter {
     this.pre.style.padding = '0';
     this.pre.style.lineHeight = '1em';
     this.pre.style.position = 'absolute';
-    this.pre.style.left = '0';
-    this.pre.style.top = '0';
+    this.pre.style.left = `${this.shadowOffset}px`;
+    this.pre.style.top = `${this.shadowOffset}px`;
     this.pre.style.zIndex = '9';
     this.pre.style.backgroundAttachment = 'fixed';
     this.pre.style.mixBlendMode = 'difference';
@@ -224,7 +225,7 @@ class CanvasTxt {
 
 class CanvAscii {
   constructor(
-    { text, asciiFontSize, textFontSize, textColor, planeBaseHeight, enableWaves },
+    { text, asciiFontSize, textFontSize, textColor, planeBaseHeight, enableWaves, shadowOffset },
     containerElem,
     width,
     height
@@ -234,6 +235,7 @@ class CanvAscii {
     this.textFontSize = textFontSize;
     this.textColor = textColor;
     this.planeBaseHeight = planeBaseHeight;
+    this.shadowOffset = shadowOffset;
     this.container = containerElem;
     this.width = width;
     this.height = height;
@@ -303,7 +305,8 @@ class CanvAscii {
     this.filter = new AsciiFilter(this.renderer, {
       fontFamily: 'IBM Plex Mono',
       fontSize: this.asciiFontSize,
-      invert: false
+      invert: false,
+      shadowOffset: this.shadowOffset
     });
 
     this.container.appendChild(this.filter.domElement);
@@ -518,8 +521,6 @@ export default function ASCIIText({
           line-height: 1em;
           text-align: left;
           position: absolute;
-          left: ${shadowOffset}px;
-          top: ${shadowOffset}px;
           background-image: radial-gradient(circle, #ff6188 0%, #fc9867 50%, #ffd866 100%);
           background-attachment: fixed;
           -webkit-text-fill-color: transparent;
