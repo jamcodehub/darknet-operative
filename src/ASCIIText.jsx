@@ -405,7 +405,8 @@ export default function ASCIIText({
   textFontSize = 200,
   textColor = '#fdf9f3',
   planeBaseHeight = 8,
-  enableWaves = true
+  enableWaves = true,
+  shadowOffset = 0
 }) {
   const containerRef = useRef(null);
   const asciiRef = useRef(null);
@@ -480,7 +481,7 @@ export default function ASCIIText({
         asciiRef.current = null;
       }
     };
-  }, [text, asciiFontSize, textFontSize, textColor, planeBaseHeight, enableWaves]);
+  }, [text, asciiFontSize, textFontSize, textColor, planeBaseHeight, enableWaves, shadowOffset]);
 
   return (
     <div
@@ -517,8 +518,8 @@ export default function ASCIIText({
           line-height: 1em;
           text-align: left;
           position: absolute;
-          left: 0;
-          top: 0;
+          left: ${shadowOffset}px;
+          top: ${shadowOffset}px;
           background-image: radial-gradient(circle, #ff6188 0%, #fc9867 50%, #ffd866 100%);
           background-attachment: fixed;
           -webkit-text-fill-color: transparent;

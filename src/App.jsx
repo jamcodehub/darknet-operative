@@ -1636,7 +1636,8 @@ You now have full control of ${host.hostname}!${nextTargetMessage}`;
             enableWaves={false}
             asciiFontSize={3}
             textFontSize={150}
-            planeBaseHeight={20}
+            planeBaseHeight={10}
+            shadowOffset={3}
           />
         </div>
 
