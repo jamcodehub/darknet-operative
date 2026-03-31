@@ -907,7 +907,7 @@ function MusicManager({ isPlaying }) {
         release: 0.05
       }
     }).toDestination();
-    bassRef.current.volume.value = -14;
+    bassRef.current.volume.value = -20;
 
     // High-pitched crunchy melody
     melodyRef.current = new window.Tone.PolySynth(window.Tone.Synth, {
@@ -919,7 +919,7 @@ function MusicManager({ isPlaying }) {
         release: 0.05
       }
     }).toDestination();
-    melodyRef.current.volume.value = -16;
+    melodyRef.current.volume.value = -20;
 
     return () => {
       if (bassRef.current) bassRef.current.dispose();
