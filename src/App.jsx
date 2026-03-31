@@ -224,7 +224,7 @@ const MISSIONS = [
 ];
 
 // ============= DIALOGUE COMPONENT =============
-function GhostDialogue({ dialogue, onComplete }) {
+function GhostDialogue({ dialogue, onComplete, isGhostSpeaking, setIsGhostSpeaking }) {
   const [currentLine, setCurrentLine] = useState(0);
   const [displayedText, setDisplayedText] = useState('');
   const [charIndex, setCharIndex] = useState(0);
@@ -234,6 +234,15 @@ function GhostDialogue({ dialogue, onComplete }) {
   useEffect(() => {
     playGhostSound();
   }, [dialogue]);
+
+  // Control speaking state during dialogue
+  useEffect(() => {
+    if (!isComplete && currentLine < dialogue.length && charIndex < dialogue[currentLine]?.length) {
+      setIsGhostSpeaking(true);
+    } else {
+      setIsGhostSpeaking(false);
+    }
+  }, [currentLine, charIndex, dialogue, isComplete, setIsGhostSpeaking]);
 
   // Reset all state for replay
   const handleReplay = () => {
@@ -348,7 +357,7 @@ function GhostDialogue({ dialogue, onComplete }) {
 }
 
 // ============= TERMINAL COMPONENT =============
-function Terminal({ onCommand, history, currentTarget }) {
+function Terminal({ onCommand, history, currentTarget, isGhostSpeaking, setIsGhostSpeaking }) {
   const [input, setInput] = useState('');
   const terminalEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -411,6 +420,8 @@ function Terminal({ onCommand, history, currentTarget }) {
               <GhostDialogue 
                 dialogue={item.dialogue} 
                 onComplete={() => {}}
+                isGhostSpeaking={isGhostSpeaking}
+                setIsGhostSpeaking={setIsGhostSpeaking}
               />
             )}
           </div>
@@ -948,6 +959,69 @@ function MusicManager({ isPlaying }) {
   return null;
 }
 
+// ============= GHOST VOICE MANAGER =============
+function GhostVoiceManager({ isSpeaking, isMuted }) {
+  const audioContextRef = useRef(null);
+  const intervalRef = useRef(null);
+
+  const stop = () => {
+    if (intervalRef.current) {
+      window.clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    try {
+      const { stop } = window.Strudel;
+      if (stop) {
+        stop();
+      }
+    } catch (e) {
+      // Strudel not ready
+    }
+  };
+
+  const playVoice = () => {
+    if (isMuted) return; // Respect mute setting
+
+    try {
+      const { start, note } = window.Strudel;
+      if (!start || !note) return;
+
+      const pattern = note("c2*6").add(note("c3*10")).add(note("c2*4"));
+      start(
+        pattern
+          .sometimes(x => x.fast(2))
+          .sound("square")
+          .n(Math.floor(Math.random() * 2))
+          .lpf(900)
+          .vowel("e o")
+          .attack(0.001)
+          .decay(0.06)
+          .sustain(0.05)
+          .gain(0.25)
+          .speed("1 0.95 1.05 1")
+      );
+    } catch (e) {
+      console.log('Strudel not ready yet');
+    }
+  };
+
+  useEffect(() => {
+    if (isSpeaking && !isMuted) {
+      playVoice();
+      // Keep the voice going while speaking
+      intervalRef.current = window.setInterval(playVoice, 2000); // Repeat every 2 seconds
+    } else {
+      stop();
+    }
+
+    return () => {
+      stop();
+    };
+  }, [isSpeaking, isMuted]);
+
+  return null;
+}
+
 // ============= MISSION OBJECTIVES =============
 function MissionObjectives({ currentMission, objectives }) {
   return (
@@ -1051,7 +1125,7 @@ const playGhostSound = () => {
     const { start, sound, note, n, s } = window.Strudel;
     if (!start) return; // Safety check
 
-    // Perfect GHOST voice loop
+    // Perfect GHOST voice loop - continuous while speaking
     start(
       note("<c2*6 ~ c3*10 ~ c2*4>")
         .sometimes(x => x.fast(2))
@@ -1071,6 +1145,17 @@ const playGhostSound = () => {
   }
 };
 
+const stopGhostSound = () => {
+  try {
+    const { stop } = window.Strudel;
+    if (stop) {
+      stop();
+    }
+  } catch (e) {
+    console.log('Strudel not ready yet');
+  }
+};
+
 // ============= MAIN APP =============
 function App() {
   const [activeTab, setActiveTab] = useState('network');
@@ -1079,6 +1164,7 @@ function App() {
   const [playerXP, setPlayerXP] = useState(0);
   const [playerLevel, setPlayerLevel] = useState(1);
   const [isMusicPlaying, setIsMusicPlaying] = useState(true);
+  const [isGhostSpeaking, setIsGhostSpeaking] = useState(false);
   const [currentMissionIndex, setCurrentMissionIndex] = useState(0);
   const [discoveredHosts, setDiscoveredHosts] = useState([
     {
@@ -1534,6 +1620,7 @@ You now have full control of ${host.hostname}!${nextTargetMessage}`;
   return (
     <div className="app-container">
       <MusicManager isPlaying={isMusicPlaying} />
+      <GhostVoiceManager isSpeaking={isGhostSpeaking} isMuted={!isMusicPlaying} />
       <div className="title-bar">
         <div className="title-bar-left">
           <div className="stat-item">
@@ -1558,7 +1645,7 @@ You now have full control of ${host.hostname}!${nextTargetMessage}`;
           <button
             className="sound-toggle"
             onClick={() => setIsMusicPlaying(prev => !prev)}
-            title={isMusicPlaying ? 'Mute music' : 'Unmute music'}
+            title={isMusicPlaying ? 'Mute all audio' : 'Unmute all audio'}
           >
             {isMusicPlaying ? '🔊' : '🔇'}
           </button>
@@ -1607,6 +1694,8 @@ You now have full control of ${host.hostname}!${nextTargetMessage}`;
             onCommand={handleCommand}
             history={terminalHistory}
             currentTarget={currentTarget}
+            isGhostSpeaking={isGhostSpeaking}
+            setIsGhostSpeaking={setIsGhostSpeaking}
           />
           
           <div className="visual-pane">
