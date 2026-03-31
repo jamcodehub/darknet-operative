@@ -1007,7 +1007,7 @@ function GhostVoiceManager({ isSpeaking, isMuted }) {
           .attack(0.001)
           .decay(0.06)
           .sustain(0.05)
-          .gain(0.25)
+          .gain(1.25)
           .speed("<1 0.95 1.05 1>")
           ._scope()
       );
