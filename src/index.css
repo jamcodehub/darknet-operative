@@ -73,8 +73,10 @@ body {
   align-items: center;
   justify-content: center;
   flex: 2;
-  height: 60px;
+  height: auto;
+  min-height: 40px;
   position: relative;
+  overflow: visible;
 }
 
 .title-text {
