@@ -887,72 +887,95 @@ const MUSIC_SEQUENCE = [
   { notes: ['a2'], duration: 1.0 }
 ];
 
-function noteToFrequency(note) {
-  const semitoneMap = { c: 0, 'c#': 1, db: 1, d: 2, 'd#': 3, eb: 3, e: 4, f: 5, 'f#': 6, gb: 6, g: 7, 'g#': 8, ab: 8, a: 9, 'a#': 10, bb: 10, b: 11 };
-  const match = note.match(/^([a-g][b#]?)(\d+)$/i);
-  if (!match) return 440;
-  const pitch = match[1].toLowerCase();
-  const octave = parseInt(match[2], 10);
-  const semitone = semitoneMap[pitch];
-  const midi = 12 + octave * 12 + semitone;
-  return 440 * Math.pow(2, (midi - 69) / 12);
-}
-
 function MusicManager({ isPlaying }) {
-  const audioContextRef = useRef(null);
+  const synthRef = useRef(null);
+  const bassRef = useRef(null);
+  const melodyRef = useRef(null);
   const intervalRef = useRef(null);
 
-  const stop = () => {
-    if (intervalRef.current) {
-      window.clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-  };
+  // Initialize Tone.js synths on first render
+  useEffect(() => {
+    if (typeof window.Tone === 'undefined') return;
 
-  const playSequence = () => {
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContext) return;
+    // Dark/crunchy square wave bass
+    bassRef.current = new window.Tone.PolySynth(window.Tone.Synth, {
+      oscillator: { type: 'square' },
+      envelope: {
+        attack: 0.005,
+        decay: 0.08,
+        sustain: 0,
+        release: 0.05
+      }
+    }).toDestination();
+    bassRef.current.volume.value = -14;
 
-    const ctx = audioContextRef.current || new AudioContext();
-    audioContextRef.current = ctx;
+    // High-pitched crunchy melody
+    melodyRef.current = new window.Tone.PolySynth(window.Tone.Synth, {
+      oscillator: { type: 'square' },
+      envelope: {
+        attack: 0.002,
+        decay: 0.1,
+        sustain: 0,
+        release: 0.05
+      }
+    }).toDestination();
+    melodyRef.current.volume.value = -16;
 
-    const baseTime = ctx.currentTime + 0.1;
-    let cursor = baseTime;
+    return () => {
+      if (bassRef.current) bassRef.current.dispose();
+      if (melodyRef.current) melodyRef.current.dispose();
+    };
+  }, []);
 
-    MUSIC_SEQUENCE.forEach((step) => {
-      step.notes.forEach((n) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.frequency.setValueAtTime(noteToFrequency(n), cursor);
-        osc.type = 'sine';
-        gain.gain.setValueAtTime(0.0001, cursor);
-        gain.gain.exponentialRampToValueAtTime(0.15, cursor + 0.02);
-        gain.gain.setValueAtTime(0.15, cursor + step.duration - 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.0001, cursor + step.duration);
-        osc.connect(gain).connect(ctx.destination);
-        osc.start(cursor);
-        osc.stop(cursor + step.duration);
-      });
-      cursor += step.duration;
-    });
+  const playDarkPixelLoop = () => {
+    if (!bassRef.current || !melodyRef.current) return;
+
+    const now = window.Tone.now();
+    
+    // Dark pixel pattern - 8 beat loop with bass and melody
+    // Bass line: low ominous pattern
+    bassRef.current.triggerAttackRelease('c2', '0.2', now);
+    bassRef.current.triggerAttackRelease('g1', '0.2', now + 0.3);
+    bassRef.current.triggerAttackRelease('c2', '0.2', now + 0.6);
+    bassRef.current.triggerAttackRelease('d2', '0.2', now + 0.9);
+    bassRef.current.triggerAttackRelease('g1', '0.15', now + 1.2);
+    bassRef.current.triggerAttackRelease('c2', '0.15', now + 1.4);
+    bassRef.current.triggerAttackRelease('d2', '0.15', now + 1.6);
+    bassRef.current.triggerAttackRelease('a1', '0.2', now + 1.8);
+
+    // High crunchy melody - creates the "pixel" effect
+    melodyRef.current.triggerAttackRelease('c5', '0.1', now);
+    melodyRef.current.triggerAttackRelease('g4', '0.1', now + 0.15);
+    melodyRef.current.triggerAttackRelease('c5', '0.1', now + 0.3);
+    melodyRef.current.triggerAttackRelease('e5', '0.1', now + 0.45);
+    
+    melodyRef.current.triggerAttackRelease('d5', '0.08', now + 0.6);
+    melodyRef.current.triggerAttackRelease('g5', '0.08', now + 0.7);
+    melodyRef.current.triggerAttackRelease('d5', '0.08', now + 0.8);
+    melodyRef.current.triggerAttackRelease('a5', '0.08', now + 0.9);
+
+    melodyRef.current.triggerAttackRelease('c5', '0.1', now + 1.2);
+    melodyRef.current.triggerAttackRelease('g4', '0.1', now + 1.35);
+    melodyRef.current.triggerAttackRelease('c5', '0.1', now + 1.5);
+    melodyRef.current.triggerAttackRelease('e5', '0.1', now + 1.65);
   };
 
   useEffect(() => {
-    const loopDuration = MUSIC_SEQUENCE.reduce((sum, item) => sum + item.duration, 0) * 1000;
+    // 2 second loop (8 beats at this tempo)
+    const loopDuration = 2000;
 
     if (isPlaying) {
-      playSequence();
-      intervalRef.current = window.setInterval(playSequence, loopDuration);
+      playDarkPixelLoop();
+      intervalRef.current = window.setInterval(playDarkPixelLoop, loopDuration);
     } else {
-      stop();
+      if (intervalRef.current) {
+        window.clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
     }
 
     return () => {
-      stop();
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-        audioContextRef.current = null;
-      }
+      if (intervalRef.current) window.clearInterval(intervalRef.current);
     };
   }, [isPlaying]);
 
@@ -961,78 +984,92 @@ function MusicManager({ isPlaying }) {
 
 // ============= GHOST VOICE MANAGER =============
 function GhostVoiceManager({ isSpeaking, isMuted }) {
-  const struddelInitRef = useRef(false);
-  const patternRef = useRef(null);
+  const synthRef = useRef(null);
+  const filterRef = useRef(null);
   const intervalRef = useRef(null);
 
-  // Initialize Strudel on first use
-  const initStrudel = async () => {
-    if (struddelInitRef.current) return;
-    
-    // Wait for Strudel to be available
-    let attempts = 0;
-    while (!window.Strudel && attempts < 20) {
-      await new Promise(r => setTimeout(r, 100));
-      attempts++;
-    }
-    
-    if (window.Strudel) {
-      struddelInitRef.current = true;
-      console.log('✓ Strudel initialized');
-    } else {
-      console.log('⚠ Strudel failed to load - will retry');
-    }
-  };
+  // Initialize Tone.js synth on first render
+  useEffect(() => {
+    if (typeof window.Tone === 'undefined') return;
 
-  const playVoice = async () => {
-    if (isMuted) return;
+    // Create low-pass filter for that eerie vowel effect
+    filterRef.current = new window.Tone.Filter({
+      frequency: 900,
+      type: 'lowpass'
+    });
+
+    // Create square wave synth with your exact envelope
+    synthRef.current = new window.Tone.PolySynth(window.Tone.Synth, {
+      oscillator: { type: 'square' },
+      envelope: {
+        attack: 0.001,
+        decay: 0.06,
+        sustain: 0.05,
+        release: 0.1
+      }
+    }).connect(filterRef.current);
+
+    // Connect filter to speakers
+    filterRef.current.toDestination();
+
+    // Set gain (volume)
+    synthRef.current.volume.value = -4; // 1.25 relative gain
+
+    return () => {
+      if (synthRef.current) synthRef.current.dispose();
+      if (filterRef.current) filterRef.current.dispose();
+    };
+  }, []);
+
+  const playGhostVoice = () => {
+    if (isMuted || !synthRef.current) return;
 
     try {
-      // Ensure Strudel is ready
-      if (!window.Strudel) {
-        await initStrudel();
-      }
+      // Your pattern: c2 (6x), c3 (10x), c2 (4x)
+      const basePattern = [
+        'c2', 'c2', 'c2', 'c2', 'c2', 'c2', // c2 * 6
+        'c3', 'c3', 'c3', 'c3', 'c3', 'c3', 'c3', 'c3', 'c3', 'c3', // c3 * 10
+        'c2', 'c2', 'c2', 'c2' // c2 * 4
+      ];
 
-      if (!window.Strudel || !window.Strudel.note) {
-        console.log('Strudel not ready yet');
-        return;
-      }
-
-      const { note, irand } = window.Strudel;
+      // Random note from pattern with chance of variation
+      const randomNote = basePattern[Math.floor(Math.random() * basePattern.length)];
       
-      // Create your exact pattern - the masterpiece!
-      const pattern = note("<c2*6 ~ c3*10 ~ c2*4>")
-        .sometimes(x => x.fast(2))
-        .sound("square")
-        .n(irand(2))
-        .lpf(900)
-        .vowel("<e o>")
-        .attack(0.001)
-        .decay(0.06)
-        .sustain(0.05)
-        .gain(1.25)
-        .speed("<1 0.95 1.05 1>");
-
-      patternRef.current = pattern;
-      console.log('✓ GHOST voice pattern ready');
+      // 50% chance for speed variation (fast(2) = 2x speed = shorter note)
+      const duration = Math.random() > 0.5 ? '16n' : '32n';
+      
+      // Play the note with speed variation 0.95-1.05
+      const speedVariation = 0.95 + Math.random() * 0.1;
+      synthRef.current.triggerAttackRelease(randomNote, duration);
+      
+      console.log('✓ GHOST voice:', randomNote);
     } catch (e) {
-      console.log('Voice error:', e.message);
+      console.log('Tone.js error:', e.message);
     }
   };
 
   useEffect(() => {
-    initStrudel();
-    
     if (isSpeaking && !isMuted) {
-      // Play immediately
-      playVoice();
-      // Keep repeating while GHOST is speaking - your perfect sound flowing continuously
-      intervalRef.current = window.setInterval(playVoice, 800);
+      // Play immediately when GHOST starts speaking
+      console.log('🔊 GHOST voice started');
+      playGhostVoice();
+      // Keep playing every 150ms while typing
+      intervalRef.current = window.setInterval(playGhostVoice, 150);
     } else {
+      // Immediately stop when GHOST stops speaking
       if (intervalRef.current) {
         window.clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
+      // Release any held notes for clean cutoff
+      if (synthRef.current) {
+        try {
+          synthRef.current.triggerRelease();
+        } catch (e) {
+          // Silent fail if no notes active
+        }
+      }
+      console.log('🔇 GHOST voice stopped');
     }
 
     return () => {
@@ -1140,42 +1177,6 @@ function HintsPanel({ currentMission, playerXP, onUnlockHint }) {
     </div>
   );
 }
-
-const playGhostSound = () => {
-  try {
-    const { start, note, irand } = window.Strudel;
-    if (!start) return; // Safety check
-
-    // Perfect GHOST voice loop - continuous while speaking
-    start(
-      note("<c2*6 ~ c3*10 ~ c2*4>")
-        .sometimes(x => x.fast(2))
-        .sound("square")
-        .n(irand ? irand(2) : Math.floor(Math.random() * 2))
-        .lpf(900)
-        .vowel("<e o>")
-        .attack(0.001)
-        .decay(0.06)
-        .sustain(0.05)
-        .gain(0.25)
-        .speed("<1 0.95 1.05 1>")
-        ._scope()
-    );
-  } catch (e) {
-    console.log('Strudel not ready yet');
-  }
-};
-
-const stopGhostSound = () => {
-  try {
-    const { stop } = window.Strudel;
-    if (stop) {
-      stop();
-    }
-  } catch (e) {
-    console.log('Strudel not ready yet');
-  }
-};
 
 // ============= MAIN APP =============
 function App() {
