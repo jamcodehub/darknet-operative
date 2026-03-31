@@ -975,7 +975,7 @@ function GhostVoiceManager({ isSpeaking, isMuted }) {
         stop();
       }
     } catch (e) {
-      // Strudel not ready
+      // Strudel not ready t
     }
   };
 
