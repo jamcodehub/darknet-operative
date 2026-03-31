@@ -882,10 +882,10 @@ function ToolsPanel({ onToolClick }) {
 }
 
 const MUSIC_SEQUENCE = [
-  { notes: ['g3'], duration: 0.5 },
-  { notes: ['bb3', 'c4'], duration: 0.5 },
-  { notes: ['g4', 'f4', 'eb4', 'f3'], duration: 0.5 },
-  { notes: ['a2'], duration: 1.0 }
+  { notes: ['g3'], duration: 0.6 },
+  { notes: ['bb3', 'c4'], duration: 0.6 },
+  { notes: ['g4', 'f4', 'eb4', 'f3'], duration: 0.6 },
+  { notes: ['a2'], duration: 1.1 }
 ];
 
 function MusicManager({ isPlaying }) {
