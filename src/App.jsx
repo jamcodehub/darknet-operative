@@ -237,7 +237,8 @@ function GhostDialogue({ dialogue, onComplete, isGhostSpeaking, setIsGhostSpeaki
 
   // Control speaking state during dialogue
   useEffect(() => {
-    if (!isComplete && currentLine < dialogue.length && charIndex < dialogue[currentLine]?.length) {
+    // Only set speaking true if dialogue is actively being displayed (not on init)
+    if (dialogue && dialogue.length > 0 && !isComplete && currentLine < dialogue.length && charIndex < dialogue[currentLine]?.length) {
       setIsGhostSpeaking(true);
     } else {
       setIsGhostSpeaking(false);
@@ -888,16 +889,14 @@ const MUSIC_SEQUENCE = [
 ];
 
 function MusicManager({ isPlaying }) {
-  const synthRef = useRef(null);
   const bassRef = useRef(null);
-  const melodyRef = useRef(null);
   const intervalRef = useRef(null);
 
-  // Initialize Tone.js synths on first render
+  // Initialize Tone.js synth on first render
   useEffect(() => {
     if (typeof window.Tone === 'undefined') return;
 
-    // Dark/crunchy square wave bass
+    // Dark/crunchy square wave bass (only synth)
     bassRef.current = new window.Tone.PolySynth(window.Tone.Synth, {
       oscillator: { type: 'square' },
       envelope: {
@@ -907,62 +906,33 @@ function MusicManager({ isPlaying }) {
         release: 0.05
       }
     }).toDestination();
-    bassRef.current.volume.value = -20;
-
-    // High-pitched crunchy melodyy
-    melodyRef.current = new window.Tone.PolySynth(window.Tone.Synth, {
-      oscillator: { type: 'square' },
-      envelope: {
-        attack: 0.002,
-        decay: 0.2,
-        sustain: 0,
-        release: 0.05
-      }
-    }).toDestination();
-    melodyRef.current.volume.value = -20;
-
+    // 1% volume = -40 dB
+    bassRef.current.volume.value = -40;
+    
     return () => {
       if (bassRef.current) bassRef.current.dispose();
-      if (melodyRef.current) melodyRef.current.dispose();
     };
   }, []);
 
   const playDarkPixelLoop = () => {
-    if (!bassRef.current || !melodyRef.current) return;
+    if (!bassRef.current) return;
 
     const now = window.Tone.now();
     
-    // Dark pixel pattern - 8 beat loop with bass and melody
-    // Bass line: low ominous pattern
-    bassRef.current.triggerAttackRelease('c2', '0.2', now);
-    bassRef.current.triggerAttackRelease('g1', '0.2', now + 0.3);
-    bassRef.current.triggerAttackRelease('c2', '0.2', now + 0.6);
-    bassRef.current.triggerAttackRelease('d2', '0.2', now + 0.9);
-    bassRef.current.triggerAttackRelease('g1', '0.15', now + 1.2);
-    bassRef.current.triggerAttackRelease('c2', '0.15', now + 1.4);
-    bassRef.current.triggerAttackRelease('d2', '0.15', now + 1.6);
-    bassRef.current.triggerAttackRelease('a1', '0.2', now + 1.8);
-
-    // High crunchy melody - creates the "pixel" effect
-    melodyRef.current.triggerAttackRelease('c5', '0.1', now);
-    melodyRef.current.triggerAttackRelease('g4', '0.1', now + 0.15);
-    melodyRef.current.triggerAttackRelease('c5', '0.1', now + 0.3);
-    melodyRef.current.triggerAttackRelease('e5', '0.1', now + 0.45);
-    
-    melodyRef.current.triggerAttackRelease('d5', '0.08', now + 0.6);
-    melodyRef.current.triggerAttackRelease('g5', '0.08', now + 0.7);
-    melodyRef.current.triggerAttackRelease('d5', '0.08', now + 0.8);
-    melodyRef.current.triggerAttackRelease('a5', '0.08', now + 0.9);
-
-    melodyRef.current.triggerAttackRelease('c5', '0.1', now + 1.2);
-    melodyRef.current.triggerAttackRelease('g4', '0.1', now + 1.35);
-    melodyRef.current.triggerAttackRelease('c5', '0.1', now + 1.5);
-    melodyRef.current.triggerAttackRelease('e5', '0.1', now + 1.65);
+    // Dark pixel pattern - bass line with slowed tempo (doubled note durations)
+    bassRef.current.triggerAttackRelease('c2', '0.4', now);
+    bassRef.current.triggerAttackRelease('g1', '0.4', now + 0.6);
+    bassRef.current.triggerAttackRelease('c2', '0.4', now + 1.2);
+    bassRef.current.triggerAttackRelease('d2', '0.4', now + 1.8);
+    bassRef.current.triggerAttackRelease('g1', '0.3', now + 2.4);
+    bassRef.current.triggerAttackRelease('c2', '0.3', now + 2.8);
+    bassRef.current.triggerAttackRelease('d2', '0.3', now + 3.2);
+    bassRef.current.triggerAttackRelease('a1', '0.4', now + 3.6);
   };
 
   useEffect(() => {
-    // 2 second loop (8 beats at this tempo)
-    const loopDuration = 2000;
+    // 4 second loop (doubled for slower tempo)
+    const loopDuration = 4000;
 
     if (isPlaying) {
       playDarkPixelLoop();
@@ -1268,6 +1238,11 @@ function App() {
   const [selectedHost, setSelectedHost] = useState(null);
   const [objectives, setObjectives] = useState(MISSIONS[0].objectives);
   const [hasMetGhost, setHasMetGhost] = useState(false);
+
+  // Ensure isGhostSpeaking is false on initial render
+  useEffect(() => {
+    setIsGhostSpeaking(false);
+  }, []);
 
   const currentMission = MISSIONS[currentMissionIndex];
 
