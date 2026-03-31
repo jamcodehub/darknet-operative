@@ -980,12 +980,23 @@ function GhostVoiceManager({ isSpeaking, isMuted }) {
   };
 
   const playVoice = () => {
-    if (isMuted) return; // Respect mute setting
+    console.log('playVoice called - isMuted:', isMuted);
+    
+    if (isMuted) {
+      console.log('Audio is muted, not playing');
+      return;
+    }
 
     try {
       const { start, note, irand } = window.Strudel;
-      if (!start || !note) return;
+      console.log('Strudel available:', { start: !!start, note: !!note, irand: !!irand });
+      
+      if (!start || !note) {
+        console.log('Strudel start or note not available');
+        return;
+      }
 
+      console.log('Starting Strudel pattern...');
       start(
         note("<c2*6 ~ c3*10 ~ c2*4>")
           .sometimes(x => x.fast(2))
@@ -1000,18 +1011,26 @@ function GhostVoiceManager({ isSpeaking, isMuted }) {
           .speed("<1 0.95 1.05 1>")
           ._scope()
       );
+      console.log('Strudel pattern started');
     } catch (e) {
-      console.log('Strudel not ready yet');
+      console.log('Strudel error:', e);
     }
   };
 
   useEffect(() => {
+    console.log('GhostVoiceManager - isSpeaking:', isSpeaking, 'isMuted:', isMuted);
+    
     if (isSpeaking && !isMuted) {
+      console.log('Starting voice playback...');
       // Play sound immediately
       playVoice();
       // Keep playing while speaking
-      intervalRef.current = window.setInterval(playVoice, 1000); // Repeat every second
+      intervalRef.current = window.setInterval(() => {
+        console.log('Playing voice on interval');
+        playVoice();
+      }, 1000);
     } else {
+      console.log('Stopping voice playback');
       stop();
     }
 
