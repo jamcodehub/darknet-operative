@@ -16,7 +16,7 @@
     "hacking",
     "game"
   ],
-  "author": "Nebsy",
+  "author": "jamcodehub",
   "license": "MIT",
   "dependencies": {
     "react": "^18.2.0",

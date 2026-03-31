@@ -4,11 +4,23 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Darknet Operative</title>
-  <!-- Load Strudel FIRST, before React -->
-  <script src="https://cdn.jsdelivr.net/npm/@strudel.cycles/strudel@latest/dist/strudel.js"></script>
 </head>
 <body>
   <div id="root"></div>
+  <script type="module">
+    // Load Strudel via dynamic import from unpkg (most reliable for browser)
+    (async () => {
+      try {
+        const { note, irand, start, stop } = await import('https://cdn.jsdelivr.net/npm/@strudel/core@latest/dist/index.mjs');
+        window.Strudel = { note, irand, start, stop };
+        console.log('✓ Strudel dynamically imported');
+      } catch (e) {
+        console.warn('Strudel import failed:', e.message);
+        // Fall back to simple sine wave if Strudel unavailable
+        window.Strudel = null;
+      }
+    })();
+  </script>
   <script type="module" src="/src/main.jsx"></script>
 </body>
 </html>
