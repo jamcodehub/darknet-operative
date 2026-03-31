@@ -961,81 +961,82 @@ function MusicManager({ isPlaying }) {
 
 // ============= GHOST VOICE MANAGER =============
 function GhostVoiceManager({ isSpeaking, isMuted }) {
-  const audioContextRef = useRef(null);
+  const struddelInitRef = useRef(false);
+  const patternRef = useRef(null);
   const intervalRef = useRef(null);
 
-  const stop = () => {
-    if (intervalRef.current) {
-      window.clearInterval(intervalRef.current);
-      intervalRef.current = null;
+  // Initialize Strudel on first use
+  const initStrudel = async () => {
+    if (struddelInitRef.current) return;
+    
+    // Wait for Strudel to be available
+    let attempts = 0;
+    while (!window.Strudel && attempts < 20) {
+      await new Promise(r => setTimeout(r, 100));
+      attempts++;
     }
-    try {
-      const { stop } = window.Strudel;
-      if (stop) {
-        stop();
-      }
-    } catch (e) {
-      // Strudel not ready
+    
+    if (window.Strudel) {
+      struddelInitRef.current = true;
+      console.log('✓ Strudel initialized');
+    } else {
+      console.log('⚠ Strudel failed to load - will retry');
     }
   };
 
-  const playVoice = () => {
-    console.log('playVoice called - isMuted:', isMuted);
-    
-    if (isMuted) {
-      console.log('Audio is muted, not playing');
-      return;
-    }
+  const playVoice = async () => {
+    if (isMuted) return;
 
     try {
-      const { start, note, irand } = window.Strudel;
-      console.log('Strudel available:', { start: !!start, note: !!note, irand: !!irand });
-      
-      if (!start || !note) {
-        console.log('Strudel start or note not available');
+      // Ensure Strudel is ready
+      if (!window.Strudel) {
+        await initStrudel();
+      }
+
+      if (!window.Strudel || !window.Strudel.note) {
+        console.log('Strudel not ready yet');
         return;
       }
 
-      console.log('Starting Strudel pattern...');
-      start(
-        note("<c2*6 ~ c3*10 ~ c2*4>")
-          .sometimes(x => x.fast(2))
-          .sound("square")
-          .n(irand ? irand(2) : Math.floor(Math.random() * 2))
-          .lpf(900)
-          .vowel("<e o>")
-          .attack(0.001)
-          .decay(0.06)
-          .sustain(0.05)
-          .gain(1.25)
-          .speed("<1 0.95 1.05 1>")
-          ._scope()
-      );
-      console.log('Strudel pattern started');
+      const { note, irand } = window.Strudel;
+      
+      // Create your exact pattern - the masterpiece!
+      const pattern = note("<c2*6 ~ c3*10 ~ c2*4>")
+        .sometimes(x => x.fast(2))
+        .sound("square")
+        .n(irand(2))
+        .lpf(900)
+        .vowel("<e o>")
+        .attack(0.001)
+        .decay(0.06)
+        .sustain(0.05)
+        .gain(1.25)
+        .speed("<1 0.95 1.05 1>");
+
+      patternRef.current = pattern;
+      console.log('✓ GHOST voice pattern ready');
     } catch (e) {
-      console.log('Strudel error:', e);
+      console.log('Voice error:', e.message);
     }
   };
 
   useEffect(() => {
-    console.log('GhostVoiceManager - isSpeaking:', isSpeaking, 'isMuted:', isMuted);
+    initStrudel();
     
     if (isSpeaking && !isMuted) {
-      console.log('Starting voice playback...');
-      // Play sound immediately
+      // Play immediately
       playVoice();
-      // Keep playing while speaking
-      intervalRef.current = window.setInterval(() => {
-        console.log('Playing voice on interval');
-        playVoice();
-      }, 1000);
+      // Keep repeating while GHOST is speaking - your perfect sound flowing continuously
+      intervalRef.current = window.setInterval(playVoice, 800);
     } else {
-      console.log('Stopping voice playback');
-      stop();
+      if (intervalRef.current) {
+        window.clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
     }
 
     return () => {
-      stop();
+      if (intervalRef.current) window.clearInterval(intervalRef.current);
     };
   }, [isSpeaking, isMuted]);
 
