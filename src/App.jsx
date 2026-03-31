@@ -975,7 +975,7 @@ function GhostVoiceManager({ isSpeaking, isMuted }) {
         stop();
       }
     } catch (e) {
-      // Strudel not ready t
+      // Strudel not ready
     }
   };
 
@@ -984,21 +984,21 @@ function GhostVoiceManager({ isSpeaking, isMuted }) {
 
     try {
       const { start, note } = window.Strudel;
-      if (!start) return;
+      if (!start || !note) return;
 
+      const pattern = note("c2*6").add(note("c3*10")).add(note("c2*4"));
       start(
-        note("<c2*6 ~ c3*10 ~ c2*4>")
+        pattern
           .sometimes(x => x.fast(2))
           .sound("square")
-          .n(irand(2))
+          .n(Math.floor(Math.random() * 2))
           .lpf(900)
-          .vowel("<e o>")
+          .vowel("e o")
           .attack(0.001)
           .decay(0.06)
           .sustain(0.05)
           .gain(0.25)
-          .speed("<1 0.95 1.05 1>")
-          ._scope()
+          .speed("1 0.95 1.05 1")
       );
     } catch (e) {
       console.log('Strudel not ready yet');
@@ -1151,6 +1151,10 @@ const stopGhostSound = () => {
     if (stop) {
       stop();
     }
+  } catch (e) {
+    console.log('Strudel not ready yet');
+  }
+};
 
 // ============= MAIN APP =============
 function App() {
