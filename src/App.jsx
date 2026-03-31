@@ -907,19 +907,19 @@ function MusicManager({ isPlaying }) {
         release: 0.05
       }
     }).toDestination();
-    bassRef.current.volume.value = -14;
+    bassRef.current.volume.value = -20;
 
-    // High-pitched crunchy melody
+    // High-pitched crunchy melodyy
     melodyRef.current = new window.Tone.PolySynth(window.Tone.Synth, {
       oscillator: { type: 'square' },
       envelope: {
         attack: 0.002,
-        decay: 0.1,
+        decay: 0.2,
         sustain: 0,
         release: 0.05
       }
     }).toDestination();
-    melodyRef.current.volume.value = -16;
+    melodyRef.current.volume.value = -20;
 
     return () => {
       if (bassRef.current) bassRef.current.dispose();
