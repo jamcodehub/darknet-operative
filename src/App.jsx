@@ -1634,7 +1634,8 @@ You now have full control of ${host.hostname}!${nextTargetMessage}`;
           <ASCIIText
             text="darknet_"
             enableWaves={false}
-            asciiFontSize={10}
+            asciiFontSize={7}
+            textFontSize={150}
           />
         </div>
 
