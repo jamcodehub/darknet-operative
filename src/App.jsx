@@ -55,8 +55,8 @@ const MISSIONS = [
       "but here's the thing...",
       "i don't give answers. i give... opportunities.",
       "your first test: find what's hiding in the shadows.",
-      "the network range is 192.168.1.0/24.",
-      "use your tools. research. think.",
+      "our intel states the network range is 192.168.1.0/24.",
+      "use your tools, research, think.",
       "type 'hint' if you're really stuck... but that's no fun.",
     ],
     hints: [
@@ -65,11 +65,11 @@ const MISSIONS = [
         text: "Research: What tool is used for network scanning? Try 'nmap' or search online for 'network scanning tools'."
       },
       {
-        cost: 25,
+        cost: 50,
         text: "The nmap command syntax is: nmap <target>. What do you think <target> should be?"
       },
       {
-        cost: 50,
+        cost: 100,
         text: "Try: nmap 192.168.1.0/24"
       }
     ]
@@ -230,6 +230,10 @@ function GhostDialogue({ dialogue, onComplete }) {
   const [charIndex, setCharIndex] = useState(0);
   const [frame, setFrame] = useState('idle');
   const [isComplete, setIsComplete] = useState(false);
+
+  useEffect(() => {
+    playGhostSound();
+  }, [dialogue]);
 
   // Reset all state for replay
   const handleReplay = () => {
@@ -1042,6 +1046,31 @@ function HintsPanel({ currentMission, playerXP, onUnlockHint }) {
   );
 }
 
+const playGhostSound = () => {
+  try {
+    const { start, sound, note, n, s } = window.Strudel;
+    if (!start) return; // Safety check
+
+    // Perfect GHOST voice loop
+    start(
+      note("<c2*6 ~ c3*10 ~ c2*4>")
+        .sometimes(x => x.fast(2))
+        .sound("square")
+        .n(irand(2))
+        .lpf(900)
+        .vowel("<e o>")
+        .attack(0.001)
+        .decay(0.06)
+        .sustain(0.05)
+        .gain(0.25)
+        .speed("<1 0.95 1.05 1>")
+        ._scope()
+    );
+  } catch (e) {
+    console.log('Strudel not ready yet');
+  }
+};
+
 // ============= MAIN APP =============
 function App() {
   const [activeTab, setActiveTab] = useState('network');
@@ -1146,11 +1175,14 @@ function App() {
     const parts = command.toLowerCase().split(' ');
     const cmd = parts[0];
 
+    // Award 25 XP for each command attempt
+    awardXP(5);
+
     if (cmd === 'talk' || cmd === 'ghost') {
       if (!hasMetGhost) {
         setHasMetGhost(true);
         updateObjective('talk_to_ghost', true);
-        awardXP(50);
+        awardXP(10);
       }
       historyItem.dialogue = currentMission.ghostDialogue;
       setTerminalHistory(prev => [...prev, historyItem]);
@@ -1180,8 +1212,8 @@ NAVIGATION:
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-💡 TIP: Research is your best friend. Use man pages, CVE databases,
-and search engines to learn about the tools and techniques.`;
+💡 TIP: Research is your best friend. Use man pages,
+ai, and search engines to learn about the tools and techniques.`;
       historyItem.type = 'info';
       setTerminalHistory(prev => [...prev, historyItem]);
       return;
