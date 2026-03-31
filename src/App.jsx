@@ -232,7 +232,7 @@ function GhostDialogue({ dialogue, onComplete, isGhostSpeaking, setIsGhostSpeaki
   const [isComplete, setIsComplete] = useState(false);
 
   useEffect(() => {
-    playGhostSound();
+    // No direct sound call here - GhostVoiceManager handles it
   }, [dialogue]);
 
   // Control speaking state during dialogue
@@ -983,22 +983,22 @@ function GhostVoiceManager({ isSpeaking, isMuted }) {
     if (isMuted) return; // Respect mute setting
 
     try {
-      const { start, note } = window.Strudel;
+      const { start, note, irand } = window.Strudel;
       if (!start || !note) return;
 
-      const pattern = note("c2*6").add(note("c3*10")).add(note("c2*4"));
       start(
-        pattern
+        note("<c2*6 ~ c3*10 ~ c2*4>")
           .sometimes(x => x.fast(2))
           .sound("square")
-          .n(Math.floor(Math.random() * 2))
+          .n(irand ? irand(2) : Math.floor(Math.random() * 2))
           .lpf(900)
-          .vowel("e o")
+          .vowel("<e o>")
           .attack(0.001)
           .decay(0.06)
           .sustain(0.05)
           .gain(0.25)
-          .speed("1 0.95 1.05 1")
+          .speed("<1 0.95 1.05 1>")
+          ._scope()
       );
     } catch (e) {
       console.log('Strudel not ready yet');
@@ -1007,9 +1007,10 @@ function GhostVoiceManager({ isSpeaking, isMuted }) {
 
   useEffect(() => {
     if (isSpeaking && !isMuted) {
+      // Play sound immediately
       playVoice();
-      // Keep the voice going while speaking
-      intervalRef.current = window.setInterval(playVoice, 2000); // Repeat every 2 seconds
+      // Keep playing while speaking
+      intervalRef.current = window.setInterval(playVoice, 1000); // Repeat every second
     } else {
       stop();
     }
@@ -1122,7 +1123,7 @@ function HintsPanel({ currentMission, playerXP, onUnlockHint }) {
 
 const playGhostSound = () => {
   try {
-    const { start, sound, note, n, s } = window.Strudel;
+    const { start, note, irand } = window.Strudel;
     if (!start) return; // Safety check
 
     // Perfect GHOST voice loop - continuous while speaking
@@ -1130,7 +1131,7 @@ const playGhostSound = () => {
       note("<c2*6 ~ c3*10 ~ c2*4>")
         .sometimes(x => x.fast(2))
         .sound("square")
-        .n(irand(2))
+        .n(irand ? irand(2) : Math.floor(Math.random() * 2))
         .lpf(900)
         .vowel("<e o>")
         .attack(0.001)
