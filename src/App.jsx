@@ -1637,7 +1637,7 @@ You now have full control of ${host.hostname}!${nextTargetMessage}`;
             asciiFontSize={3}
             textFontSize={150}
             planeBaseHeight={10}
-            shadowOffset={3}
+            shadowOffset={1}
           />
         </div>
 
