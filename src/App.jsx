@@ -49,15 +49,7 @@ const MISSIONS = [
       { id: 'talk_to_ghost', text: 'Type "talk" to speak with GHOST', completed: false }
     ],
     ghostDialogue: [
-      "well, well... another curious mind enters the void.",
-      "i'm GHOST. been watching the networks for... a while now.",
-      "you want to learn hacking? heh... everyone does.",
-      "but here's the thing...",
-      "i don't give answers. i give... opportunities.",
-      "your first test: find what's hiding in the shadows.",
-      "our intel states the network range is 192.168.1.0/24.",
-      "use your tools, research, think.",
-      "type 'hint' if you're really stuck... but that's no fun.",
+      "well, well... another curious mind enters the void. i'm GHOST. been watching the networks for... a while now. you want to learn hacking? heh... everyone does. but here's the thing... i don't give answers. i give... opportunities. your first test: find what's hiding in the shadows. our intel states the network range is 192.168.1.0/24. use your tools, research, think. type 'hint' if you're really stuck... but that's no fun.",
     ],
     hints: [
       {
