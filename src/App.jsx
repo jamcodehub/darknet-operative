@@ -216,7 +216,7 @@ const MISSIONS = [
 ];
 
 // ============= DIALOGUE COMPONENT =============
-function GhostDialogue({ dialogue, onComplete, isGhostSpeaking, setIsGhostSpeaking }) {
+function GhostDialogue({ dialogue, isGhostSpeaking, setIsGhostSpeaking }) {
   const [currentLine, setCurrentLine] = useState(0);
   const [displayedText, setDisplayedText] = useState('');
   const [charIndex, setCharIndex] = useState(0);
@@ -247,14 +247,6 @@ function GhostDialogue({ dialogue, onComplete, isGhostSpeaking, setIsGhostSpeaki
   };
 
   useEffect(() => {
-    if (isComplete) return;
-
-    if (currentLine >= dialogue.length) {
-      setIsComplete(true);
-      setTimeout(onComplete, 500);
-      return;
-    }
-
     const currentText = dialogue[currentLine];
     
     if (charIndex < currentText.length) {
@@ -314,19 +306,14 @@ function GhostDialogue({ dialogue, onComplete, isGhostSpeaking, setIsGhostSpeaki
             color: 'var(--text-primary)',
             fontSize: '13px',
             minHeight: '60px'
-          }}>
-            {isComplete ? (
-              <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                ...transmission complete.
-              </span>
-            ) : (
+          }}> : (
               <>
                 {displayedText}
                 {charIndex < dialogue[currentLine]?.length && (
                   <span style={{ animation: 'pulse 1s infinite' }}>_</span>
                 )}
               </>
-            )}
+            )
           </div>
           <div style={{ 
             marginTop: '10px',
@@ -411,8 +398,7 @@ function Terminal({ onCommand, history, currentTarget, isGhostSpeaking, setIsGho
             )}
             {item.dialogue && (
               <GhostDialogue 
-                dialogue={item.dialogue} 
-                onComplete={() => {}}
+                dialogue={item.dialogue}
                 isGhostSpeaking={isGhostSpeaking}
                 setIsGhostSpeaking={setIsGhostSpeaking}
               />
