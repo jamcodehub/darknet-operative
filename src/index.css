@@ -249,7 +249,7 @@ body {
   background: rgba(110, 118, 129, 0.14);
   border: 1px solid rgba(110, 118, 129, 0.3);
   border-radius: 10px;
-  padding: 10px 12px;
+  padding: 6px 10px;
 }
 
 .terminal-input {
