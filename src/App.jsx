@@ -49,7 +49,7 @@ const MISSIONS = [
       { id: 'talk_to_ghost', text: 'Type "talk" to speak with GHOST', completed: false }
     ],
     ghostDialogue: [
-      "well, well... another curious mind enters the void. i'm GHOST. been watching the networks for... a while now. you want to learn hacking? heh... everyone does. but here's the thing... i don't give answers. i give... opportunities. your first test: find what's hiding in the shadows. our intel states the network range is 192.168.1.0/24. use your tools, research, think. type 'hint' if you're really stuck... but that's no fun.",
+      "well, well... another curious mind enters the void. i'm GHOST. been watching the networks for... a while now. you want to learn hacking? heh... everyone does. but here's the thing... i don't give answers. i give... opportunities. your first test: find what's hiding in the shadows. our intel states the network range is 192.168.1.0/24. use your tools, research, think. type 'help' to see commands and type 'hint' if you're really stuck... but that's no fun.",
     ],
     hints: [
       {
@@ -76,7 +76,7 @@ const MISSIONS = [
       { id: 'document_findings', text: 'Document at least 5 open ports', completed: false }
     ],
     ghostDialogue: [
-      "back again? good.",
+      "back again? good. hosts are live. now enumerate each target with nmap -sV <host_ip> so you can see service versions, then search for an exploit.",
       "finding hosts is one thing...",
       "but knowing what they're running? that's where it gets interesting.",
       "every open port is a potential door.",
@@ -217,58 +217,38 @@ const MISSIONS = [
 
 // ============= DIALOGUE COMPONENT =============
 function GhostDialogue({ dialogue, isGhostSpeaking, setIsGhostSpeaking }) {
-  const [currentLine, setCurrentLine] = useState(0);
   const [displayedText, setDisplayedText] = useState('');
   const [charIndex, setCharIndex] = useState(0);
   const [frame, setFrame] = useState('idle');
-  const [isComplete, setIsComplete] = useState(false);
+
+  const fullText = Array.isArray(dialogue) ? dialogue.join(' ') : dialogue || '';
 
   useEffect(() => {
-    // No direct sound call here - GhostVoiceManager handles it
-  }, [dialogue]);
+    setDisplayedText('');
+    setCharIndex(0);
+    setFrame('idle');
+  }, [fullText]);
 
-  // Control speaking state during dialogue
   useEffect(() => {
-    // Only set speaking true if dialogue is actively being displayed (not on init)
-    if (dialogue && dialogue.length > 0 && !isComplete && currentLine < dialogue.length && charIndex < dialogue[currentLine]?.length) {
+    if (!fullText) return;
+
+    if (charIndex < fullText.length) {
+      const timer = setTimeout(() => {
+        setDisplayedText(prev => prev + fullText[charIndex]);
+        setCharIndex(charIndex + 1);
+        setFrame(charIndex % 3 === 0 ? 'speaking' : 'idle');
+      }, 30);
+      return () => clearTimeout(timer);
+    }
+  }, [charIndex, fullText]);
+
+  useEffect(() => {
+    if (fullText && charIndex < fullText.length) {
       setIsGhostSpeaking(true);
     } else {
       setIsGhostSpeaking(false);
     }
-  }, [currentLine, charIndex, dialogue, isComplete, setIsGhostSpeaking]);
-
-  // Reset all state for replay
-  const handleReplay = () => {
-    setCurrentLine(0);
-    setDisplayedText('');
-    setCharIndex(0);
-    setFrame('idle');
-    setIsComplete(false);
-  };
-
-  useEffect(() => {
-    const currentText = dialogue[currentLine];
-    
-    if (charIndex < currentText.length) {
-      const timer = setTimeout(() => {
-        setDisplayedText(prev => prev + currentText[charIndex]);
-        setCharIndex(charIndex + 1);
-        setFrame(charIndex % 3 === 0 ? 'speaking' : 'idle');
-      }, 50);
-      return () => clearTimeout(timer);
-    } else {
-      const timer = setTimeout(() => {
-        setCurrentLine(currentLine + 1);
-        setDisplayedText('');
-        setCharIndex(0);
-        setFrame('idle');
-      }, 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [currentLine, charIndex, dialogue, onComplete, isComplete]);
-
-  // Display line: clamp so it never exceeds total
-  const displayLine = Math.min(currentLine + 1, dialogue.length);
+  }, [charIndex, fullText, setIsGhostSpeaking]);
 
   return (
     <div style={{ 
@@ -305,29 +285,12 @@ function GhostDialogue({ dialogue, isGhostSpeaking, setIsGhostSpeaking }) {
           <div style={{ 
             color: 'var(--text-primary)',
             fontSize: '13px',
-            minHeight: '60px'
-          }}> : (
-              <>
-                {displayedText}
-                {charIndex < dialogue[currentLine]?.length && (
-                  <span style={{ animation: 'pulse 1s infinite' }}>_</span>
-                )}
-              </>
-            )
-          </div>
-          <div style={{ 
-            marginTop: '10px',
-            fontSize: '11px',
-            color: 'var(--text-muted)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px'
+            minHeight: '120px',
+            whiteSpace: 'pre-wrap'
           }}>
-            <span>{displayLine} / {dialogue.length}</span>
-            {isComplete && (
-              <button className="ghost-replay-btn" onClick={handleReplay}>
-                ↺ Replay
-              </button>
+            {displayedText}
+            {charIndex < fullText.length && (
+              <span style={{ animation: 'pulse 1s infinite' }}>_</span>
             )}
           </div>
         </div>
@@ -398,7 +361,8 @@ function Terminal({ onCommand, history, currentTarget, isGhostSpeaking, setIsGho
             )}
             {item.dialogue && (
               <GhostDialogue 
-                dialogue={item.dialogue}
+                dialogue={item.dialogue} 
+                onComplete={() => {}}
                 isGhostSpeaking={isGhostSpeaking}
                 setIsGhostSpeaking={setIsGhostSpeaking}
               />
@@ -1321,46 +1285,58 @@ Type 'talk' to speak with GHOST for guidance.`;
 
       const target = parts[parts.length - 1];
       const isServiceScan = parts.includes('-sv');
+      const host = discoveredHosts.find(h => h.ip === target);
 
-      if (target === '192.168.1.0/24' || target.startsWith('192.168.1.')) {
-        if (isServiceScan) {
-          const targetIp = target.replace('/24', '');
-          const host = discoveredHosts.find(h => target === '192.168.1.0/24' || h.ip === targetIp);
-          
-          if (host) {
-            handleServiceEnumeration(host.ip, historyItem);
-            updateObjective('service_scan', true);
-            updateObjective('identify_versions', true);
-            
-            const totalPorts = discoveredHosts.reduce((sum, h) => sum + (h.ports?.length || 0), 0);
-            if (totalPorts >= 5) {
-              updateObjective('document_findings', true);
-            }
-          } else {
-            historyItem.output = `Host ${targetIp} not found. Scan the network first.`;
-            historyItem.type = 'error';
-            setTerminalHistory(prev => [...prev, historyItem]);
-          }
-        } else {
-          handleNetworkScan(historyItem);
-          updateObjective('scan_network', true);
-          
-          const discoveredCount = discoveredHosts.filter(h => h.discovered).length + discoveredHosts.length;
-          if (discoveredCount >= 3) {
-            updateObjective('identify_hosts', true);
-          }
+      if (isServiceScan) {
+        if (target === '192.168.1.0/24' || target.endsWith('/24')) {
+          historyItem.output = 'Service scan requires a host IP, not a network range.\nUsage: nmap -sV <target_ip>';
+          historyItem.type = 'error';
+          setTerminalHistory(prev => [...prev, historyItem]);
+          return;
+        }
+
+        if (!host || !host.discovered) {
+          historyItem.output = `Host ${target} not found. Scan the network first using: nmap 192.168.1.0/24`;
+          historyItem.type = 'error';
+          setTerminalHistory(prev => [...prev, historyItem]);
+          return;
+        }
+
+        handleServiceEnumeration(target, historyItem);
+        updateObjective('service_scan', true);
+        updateObjective('identify_versions', true);
+
+        const totalPorts = discoveredHosts.reduce((sum, h) => sum + (h.ports?.length || 0), 0);
+        if (totalPorts >= 5) {
+          updateObjective('document_findings', true);
+        }
+
+        if (currentMissionIndex === 0) {
+          setCurrentMissionIndex(1);
+          setObjectives(MISSIONS[1].objectives);
         }
       } else {
-        historyItem.output = `Invalid target. Try scanning the network range: 192.168.1.0/24`;
-        historyItem.type = 'error';
-        setTerminalHistory(prev => [...prev, historyItem]);
+        if (target === '192.168.1.0/24') {
+          handleNetworkScan(historyItem);
+          updateObjective('scan_network', true);
+          updateObjective('identify_hosts', true);
+
+          if (currentMissionIndex === 0) {
+            setCurrentMissionIndex(1);
+            setObjectives(MISSIONS[1].objectives);
+          }
+        } else {
+          historyItem.output = `Invalid target. Try scanning the network range: 192.168.1.0/24`;
+          historyItem.type = 'error';
+          setTerminalHistory(prev => [...prev, historyItem]);
+        }
       }
       return;
     }
 
     if (cmd === 'searchsploit') {
       if (parts.length < 2) {
-        historyItem.output = 'Usage: searchsploit <service> <version>\nExample: searchsploit apache 2.4.41';
+        historyItem.output = 'Usage: searchsploit <service> <version>\nExample: searchsploit <service> <version>';
         historyItem.type = 'error';
         setTerminalHistory(prev => [...prev, historyItem]);
         return;
@@ -1376,7 +1352,7 @@ Type 'talk' to speak with GHOST for guidance.`;
 
     if (cmd === 'exploit') {
       if (parts.length < 3) {
-        historyItem.output = 'Usage: exploit <CVE-ID> <target-ip>\nExample: exploit CVE-2024-1234 192.168.1.10';
+        historyItem.output = 'Usage: exploit <CVE-ID> <target-ip>\nExample: exploit <CVE-ID> <target-ip>';
         historyItem.type = 'error';
         setTerminalHistory(prev => [...prev, historyItem]);
         return;
@@ -1419,6 +1395,12 @@ Scan complete. Use 'nmap -sV <target>' for service enumeration.`;
     setTerminalHistory(prev => [...prev, historyItem]);
   };
 
+  const getShortVersion = (version) => {
+    if (!version) return 'version detection failed';
+    const match = version.match(/(\d+(?:\.\d+)*[a-z0-9\-]*)/i);
+    return match ? match[0] : version;
+  };
+
   const handleServiceEnumeration = (ip, historyItem) => {
     const host = discoveredHosts.find(h => h.ip === ip);
     
@@ -1433,7 +1415,7 @@ Scan complete. Use 'nmap -sV <target>' for service enumeration.`;
 
 PORT     STATE SERVICE       VERSION
 ${host.ports.map(port => 
-  `${port.port}/${port.protocol}   open  ${port.service.padEnd(12)} ${port.version || 'version detection failed'}`
+  `${port.port}/${port.protocol}   open  ${port.service.padEnd(12)} ${getShortVersion(port.version)}`
 ).join('\n')}
 
 Service enumeration complete. Use 'searchsploit' to find exploits for these services.`;

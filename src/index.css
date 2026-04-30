@@ -246,11 +246,15 @@ body {
   display: flex;
   align-items: center;
   margin-top: 4px;
+  background: rgba(110, 118, 129, 0.14);
+  border: 1px solid rgba(110, 118, 129, 0.3);
+  border-radius: 10px;
+  padding: 10px 12px;
 }
 
 .terminal-input {
   flex: 1;
-  background: none;
+  background: transparent;
   border: none;
   color: var(--text-primary);
   font-family: inherit;
