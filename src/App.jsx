@@ -237,7 +237,7 @@ function GhostDialogue({ dialogue, isGhostSpeaking, setIsGhostSpeaking }) {
         setDisplayedText(prev => prev + fullText[charIndex]);
         setCharIndex(charIndex + 1);
         setFrame(charIndex % 3 === 0 ? 'speaking' : 'idle');
-      }, 45);
+      }, 65);
       return () => clearTimeout(timer);
     }
   }, [charIndex, fullText]);
