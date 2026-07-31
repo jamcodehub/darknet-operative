@@ -215,8 +215,23 @@ const MISSIONS = [
   }
 ];
 
+// ============= HELPERS =============
+const getShortVersion = (version) => {
+  if (!version) return '—';
+  const match = version.match(/(\d+(?:\.\d+)*[a-z0-9\-]*)/i);
+  return match ? match[0] : version;
+};
+
+const GHOST_HATS = {
+  party:   { emoji: '🎊', label: 'Party Hat',  cost: 50  },
+  wizard:  { emoji: '🧙', label: 'Wizard Hat', cost: 150 },
+  tophat:  { emoji: '🎩', label: 'Top Hat',    cost: 300 },
+  cowboy:  { emoji: '🤠', label: 'Cowboy',     cost: 500 },
+  crown:   { emoji: '👑', label: 'Crown',      cost: 1000 },
+};
+
 // ============= DIALOGUE COMPONENT =============
-function GhostDialogue({ dialogue, isGhostSpeaking, setIsGhostSpeaking }) {
+function GhostDialogue({ dialogue, ghostHat, isGhostSpeaking, setIsGhostSpeaking }) {
   const [displayedText, setDisplayedText] = useState('');
   const [charIndex, setCharIndex] = useState(0);
   const [frame, setFrame] = useState('idle');
@@ -264,15 +279,21 @@ function GhostDialogue({ dialogue, isGhostSpeaking, setIsGhostSpeaking }) {
         gap: '20px',
         alignItems: 'flex-start'
       }}>
-        <pre style={{ 
-          color: 'var(--accent-purple)', 
-          fontSize: '10px',
-          lineHeight: '10px',
-          margin: 0,
-          flexShrink: 0
-        }}>
-          {GHOST_FRAMES[frame]}
-        </pre>
+        <div style={{ flexShrink: 0, textAlign: 'center' }}>
+          {ghostHat && (
+            <div style={{ fontSize: '22px', lineHeight: 1, marginBottom: '2px', marginLeft: '32px' }}>
+              {GHOST_HATS[ghostHat]?.emoji}
+            </div>
+          )}
+          <pre style={{ 
+            color: 'var(--accent-purple)', 
+            fontSize: '10px',
+            lineHeight: '10px',
+            margin: 0,
+          }}>
+            {GHOST_FRAMES[frame]}
+          </pre>
+        </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ 
             color: 'var(--accent-purple)', 
@@ -300,7 +321,7 @@ function GhostDialogue({ dialogue, isGhostSpeaking, setIsGhostSpeaking }) {
 }
 
 // ============= TERMINAL COMPONENT =============
-function Terminal({ onCommand, history, currentTarget, isGhostSpeaking, setIsGhostSpeaking }) {
+function Terminal({ onCommand, history, currentTarget, isGhostSpeaking, setIsGhostSpeaking, ghostHat }) {
   const [input, setInput] = useState('');
   const terminalEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -363,6 +384,7 @@ function Terminal({ onCommand, history, currentTarget, isGhostSpeaking, setIsGho
               <GhostDialogue 
                 dialogue={item.dialogue} 
                 onComplete={() => {}}
+                ghostHat={ghostHat}
                 isGhostSpeaking={isGhostSpeaking}
                 setIsGhostSpeaking={setIsGhostSpeaking}
               />
@@ -459,7 +481,7 @@ function NetworkMap({ discoveredHosts, selectedHost, onHostClick }) {
   const getNodeClass = (host) => {
     let className = 'network-node';
     if (host.discovered) className += ' discovered';
-    if (host.vulnerabilities && host.vulnerabilities.length > 0) className += ' vulnerable';
+    if (host.enumerated && host.vulnerabilities?.length > 0) className += ' vulnerable';
     if (host.exploited) className += ' exploited';
     return className;
   };
@@ -659,9 +681,9 @@ function IntelPanel({ selectedHost }) {
           </div>
           {selectedHost.ports.map((port, index) => (
             <div key={index} className="intel-detail">
-              <span className="intel-label">{port.port}/{port.protocol}</span>
-              <span className="intel-value">
-                {port.service} {port.version && `(${port.version})`}
+              <span className="intel-label">{port.port}/{port.protocol} — {port.service}</span>
+              <span className="intel-value" style={{ color: 'var(--text-muted)' }}>
+                {getShortVersion(port.version)}
               </span>
             </div>
           ))}
@@ -1016,7 +1038,7 @@ function MissionObjectives({ currentMission, objectives }) {
 }
 
 // ============= HINTS PANEL =============
-function HintsPanel({ currentMission, playerXP, onUnlockHint }) {
+function HintsPanel({ currentMission, playerXP, onUnlockHint, ghostHat, onBuyHat }) {
   const mission = MISSIONS.find(m => m.id === currentMission);
   const [unlockedHints, setUnlockedHints] = useState([0]);
 
@@ -1086,6 +1108,54 @@ function HintsPanel({ currentMission, playerXP, onUnlockHint }) {
       <div style={{ marginTop: '20px', padding: '12px', backgroundColor: 'rgba(88, 166, 255, 0.1)', borderRadius: '6px', fontSize: '12px', color: 'var(--accent-blue)' }}>
         <strong>Remember:</strong> Research is key! Use search engines, read documentation (man pages), and explore resources like CVE databases and Exploit-DB.
       </div>
+
+      {/* ── Ghost Wardrobe ── */}
+      <div style={{ marginTop: '24px', padding: '16px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px', borderLeft: '4px solid var(--accent-purple)' }}>
+        <div style={{ fontWeight: 600, marginBottom: '4px', color: 'var(--accent-purple)', fontSize: '14px' }}>
+          👻 GHOST Wardrobe
+        </div>
+        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px' }}>
+          Spend XP to dress up GHOST. Hats appear in all future transmissions.
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          <button
+            onClick={() => onBuyHat(null)}
+            style={{
+              padding: '6px 12px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer',
+              border: `2px solid ${ghostHat === null ? 'var(--accent-purple)' : 'var(--border-primary)'}`,
+              background: ghostHat === null ? 'rgba(188,140,255,0.15)' : 'transparent',
+              color: ghostHat === null ? 'var(--accent-purple)' : 'var(--text-muted)',
+            }}
+          >
+            None
+          </button>
+          {Object.entries(GHOST_HATS).map(([key, hat]) => {
+            const owned = playerXP >= hat.cost || ghostHat === key;
+            const active = ghostHat === key;
+            return (
+              <button key={key}
+                onClick={() => { if (playerXP >= hat.cost || active) onBuyHat(key); }}
+                title={`${hat.label} — ${hat.cost} XP`}
+                style={{
+                  padding: '6px 12px', borderRadius: '6px', fontSize: '12px',
+                  cursor: owned ? 'pointer' : 'not-allowed',
+                  border: `2px solid ${active ? 'var(--accent-purple)' : 'var(--border-primary)'}`,
+                  background: active ? 'rgba(188,140,255,0.15)' : 'transparent',
+                  color: owned ? 'var(--text-primary)' : 'var(--text-muted)',
+                  opacity: owned ? 1 : 0.5,
+                }}
+              >
+                {hat.emoji} {hat.cost} XP
+              </button>
+            );
+          })}
+        </div>
+        {ghostHat && (
+          <div style={{ marginTop: '10px', fontSize: '12px', color: 'var(--accent-green)' }}>
+            ✓ Currently wearing: {GHOST_HATS[ghostHat]?.emoji} {GHOST_HATS[ghostHat]?.label}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -1099,6 +1169,7 @@ function App() {
   const [playerLevel, setPlayerLevel] = useState(1);
   const [isMusicPlaying, setIsMusicPlaying] = useState(true);
   const [isGhostSpeaking, setIsGhostSpeaking] = useState(false);
+  const [ghostHat, setGhostHat] = useState(null);
   const [currentMissionIndex, setCurrentMissionIndex] = useState(0);
   const [discoveredHosts, setDiscoveredHosts] = useState([
     {
@@ -1107,6 +1178,7 @@ function App() {
       os: 'Ubuntu 20.04 LTS',
       type: 'server',
       discovered: false,
+      enumerated: false,
       ports: [
         { port: 22, protocol: 'tcp', service: 'SSH', version: 'OpenSSH 8.2p1' },
         { port: 80, protocol: 'tcp', service: 'HTTP', version: 'Apache 2.4.41' },
@@ -1132,6 +1204,7 @@ function App() {
       os: 'CentOS 8',
       type: 'database',
       discovered: false,
+      enumerated: false,
       ports: [
         { port: 22, protocol: 'tcp', service: 'SSH', version: 'OpenSSH 7.4' },
         { port: 3306, protocol: 'tcp', service: 'MySQL', version: 'MySQL 5.7.30' },
@@ -1157,6 +1230,7 @@ function App() {
       os: 'Windows Server 2019',
       type: 'server',
       discovered: false,
+      enumerated: false,
       ports: [
         { port: 135, protocol: 'tcp', service: 'RPC', version: 'Microsoft Windows RPC' },
         { port: 139, protocol: 'tcp', service: 'NetBIOS', version: 'Microsoft Windows netbios-ssn' },
@@ -1277,7 +1351,7 @@ Type 'talk' to speak with GHOST for guidance.`;
 
     if (cmd === 'nmap') {
       if (parts.length < 2) {
-        historyItem.output = 'Usage: nmap <target>\nExample: nmap 192.168.1.0/24';
+        historyItem.output = 'Usage: nmap <target>\nExample: nmap <network_range>';
         historyItem.type = 'error';
         setTerminalHistory(prev => [...prev, historyItem]);
         return;
@@ -1288,8 +1362,9 @@ Type 'talk' to speak with GHOST for guidance.`;
       const host = discoveredHosts.find(h => h.ip === target);
 
       if (isServiceScan) {
-        if (target === '192.168.1.0/24' || target.endsWith('/24')) {
-          historyItem.output = 'Service scan requires a host IP, not a network range.\nUsage: nmap -sV <target_ip>';
+        // Block any subnet/CIDR notation — service scan needs a specific host IP
+        if (target.includes('/') || target.endsWith('.0')) {
+          historyItem.output = `Error: Service scan requires a specific host IP, not a network range.\nUsage: nmap -sV <host_ip>\n\nTip: Use a specific IP from your network scan results.`;
           historyItem.type = 'error';
           setTerminalHistory(prev => [...prev, historyItem]);
           return;
@@ -1336,7 +1411,7 @@ Type 'talk' to speak with GHOST for guidance.`;
 
     if (cmd === 'searchsploit') {
       if (parts.length < 2) {
-        historyItem.output = 'Usage: searchsploit <service> <version>\nExample: searchsploit <service> <version>';
+        historyItem.output = 'Usage: searchsploit <service_name>\nExample: searchsploit <service>\n\nTip: Use one of the service names you found during enumeration.';
         historyItem.type = 'error';
         setTerminalHistory(prev => [...prev, historyItem]);
         return;
@@ -1352,7 +1427,7 @@ Type 'talk' to speak with GHOST for guidance.`;
 
     if (cmd === 'exploit') {
       if (parts.length < 3) {
-        historyItem.output = 'Usage: exploit <CVE-ID> <target-ip>\nExample: exploit <CVE-ID> <target-ip>';
+        historyItem.output = 'Usage: exploit <CVE-ID> <target-ip>\nExample: exploit <CVE-YEAR-NNNNN> <host_ip>\n\nTip: Find CVE IDs using searchsploit on enumerated hosts.';
         historyItem.type = 'error';
         setTerminalHistory(prev => [...prev, historyItem]);
         return;
@@ -1395,12 +1470,6 @@ Scan complete. Use 'nmap -sV <target>' for service enumeration.`;
     setTerminalHistory(prev => [...prev, historyItem]);
   };
 
-  const getShortVersion = (version) => {
-    if (!version) return 'version detection failed';
-    const match = version.match(/(\d+(?:\.\d+)*[a-z0-9\-]*)/i);
-    return match ? match[0] : version;
-  };
-
   const handleServiceEnumeration = (ip, historyItem) => {
     const host = discoveredHosts.find(h => h.ip === ip);
     
@@ -1421,7 +1490,9 @@ ${host.ports.map(port =>
 Service enumeration complete. Use 'searchsploit' to find exploits for these services.`;
     historyItem.type = 'success';
     awardXP(75);
-    setSelectedHost(host);
+    // Mark host as enumerated so network map updates
+    setDiscoveredHosts(prev => prev.map(h => h.ip === ip ? { ...h, enumerated: true } : h));
+    setSelectedHost({ ...host, enumerated: true });
     setActiveTab('intel');
     setTerminalHistory(prev => [...prev, historyItem]);
   };
@@ -1504,10 +1575,8 @@ Use 'exploit <CVE-ID> <target-ip>' to execute an exploit.`;
       const nextHost = remainingHosts[0];
       nextTargetMessage = `
 
-[!] NEXT TARGET IDENTIFIED:
-    Try exploiting ${nextHost.ip} (${nextHost.hostname})
-    Use 'nmap -sV ${nextHost.ip}' to enumerate services
-    Then use 'searchsploit' to find vulnerabilities`;
+[!] NEXT TARGET IDENTIFIED: ${nextHost.hostname}
+    There are still ${remainingHosts.length} host(s) to compromise.`;
     } else if (exploitedCount === updatedHosts.length) {
       nextTargetMessage = `
 
@@ -1656,6 +1725,7 @@ You now have full control of ${host.hostname}!${nextTargetMessage}`;
             currentTarget={currentTarget}
             isGhostSpeaking={isGhostSpeaking}
             setIsGhostSpeaking={setIsGhostSpeaking}
+            ghostHat={ghostHat}
           />
           
           <div className="visual-pane">
@@ -1678,6 +1748,8 @@ You now have full control of ${host.hostname}!${nextTargetMessage}`;
                   currentMission={currentMission.id}
                   playerXP={playerXP}
                   onUnlockHint={handleUnlockHint}
+                  ghostHat={ghostHat}
+                  onBuyHat={setGhostHat}
                 />
               )}
             </div>
