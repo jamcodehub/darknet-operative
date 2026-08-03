@@ -223,11 +223,11 @@ const getShortVersion = (version) => {
 };
 
 const GHOST_HATS = {
-  party:   { emoji: '🎊', label: 'Party Hat',  cost: 50  },
-  wizard:  { emoji: '🧙', label: 'Wizard Hat', cost: 150 },
-  tophat:  { emoji: '🎩', label: 'Top Hat',    cost: 300 },
-  cowboy:  { emoji: '🤠', label: 'Cowboy',     cost: 500 },
-  crown:   { emoji: '👑', label: 'Crown',      cost: 1000 },
+  party:   { emoji: '-*-', label: 'Party Hat',  cost: 50  },
+  wizard:  { emoji: '-^-', label: 'Wizard Hat', cost: 150 },
+  tophat:  { emoji: '.|-|.', label: 'Top Hat',    cost: 300 },
+  cowboy:  { emoji: '-/-\-', label: 'Cowboy',     cost: 500 },
+  crown:   { emoji: '.=MMM=.', label: 'Crown',      cost: 1000 },
 };
 
 // ============= DIALOGUE COMPONENT =============
